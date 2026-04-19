@@ -33,7 +33,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
@@ -66,6 +65,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ruizlenato.karabau.ui.theme.authOutlinedTextFieldColors
 import com.ruizlenato.karabau.ui.viewmodel.AuthState
 import com.ruizlenato.karabau.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
@@ -244,14 +244,7 @@ fun LoginScreen(
                         supportingText = emailFieldError?.let {
                             { Text(it, color = MaterialTheme.colorScheme.error) }
                         },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
+                        colors = authOutlinedTextFieldColors()
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -298,14 +291,7 @@ fun LoginScreen(
                         supportingText = passwordFieldError?.let {
                             { Text(it, color = MaterialTheme.colorScheme.error) }
                         },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
+                        colors = authOutlinedTextFieldColors()
                     )
                 }
 

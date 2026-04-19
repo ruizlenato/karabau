@@ -24,7 +24,7 @@ fun SplashScreen(
     onNavigateToLogin: () -> Unit
 ) {
     LaunchedEffect(Unit) {
-        delay(500) // Small delay for smooth transition
+        delay(500)
         if (isLoggedIn) {
             onNavigateToHome()
         } else {

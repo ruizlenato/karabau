@@ -2,11 +2,13 @@ package com.ruizlenato.karabau.data.model
 
 import kotlinx.serialization.Serializable
 
+const val DEFAULT_SERVER_ADDRESS = "https://cloud.karakeep.app"
+
 @Serializable
 data class Settings(
     val apiKey: String? = null,
     val apiKeyId: String? = null,
-    val address: String = "https://cloud.karakeep.app",
+    val address: String = DEFAULT_SERVER_ADDRESS,
     val imageQuality: Float = 0.2f,
     val theme: Theme = Theme.SYSTEM,
     val defaultBookmarkView: BookmarkView = BookmarkView.READER,

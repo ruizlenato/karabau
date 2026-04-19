@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.SettingsDataStore
+import com.ruizlenato.karabau.data.model.DEFAULT_SERVER_ADDRESS
 import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.isLoggedIn
@@ -39,7 +40,7 @@ data class AuthUiState(
     val apiKey: String = "",
     val errorMessage: String? = null,
     val isLoggedIn: Boolean = false,
-    val serverAddress: String = "https://cloud.karakeep.app"
+    val serverAddress: String = DEFAULT_SERVER_ADDRESS
 )
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
@@ -140,7 +141,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             when (result) {
                 is ApiResult.Success -> {
                     if (currentState.loginType == LoginType.PASSWORD) {
-                        // Save API key and ID from exchange response
                         val data = result.data as ExchangeKeyResponse
                         val newSettings = settings.copy(
                             address = currentState.serverAddress,
@@ -149,7 +149,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         )
                         settingsDataStore.updateSettings(newSettings)
                     } else {
-                        // Just save API key from direct input
                         val newSettings = settings.copy(
                             address = currentState.serverAddress,
                             apiKey = currentState.apiKey

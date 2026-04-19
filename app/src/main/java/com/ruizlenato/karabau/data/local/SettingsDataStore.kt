@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ruizlenato.karabau.data.model.BookmarkView
+import com.ruizlenato.karabau.data.model.DEFAULT_SERVER_ADDRESS
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.Theme
 import kotlinx.coroutines.flow.Flow
@@ -40,7 +41,7 @@ class SettingsDataStore(private val context: Context) {
         Settings(
             apiKey = preferences[API_KEY],
             apiKeyId = preferences[API_KEY_ID],
-            address = preferences[ADDRESS] ?: "https://cloud.karakeep.app",
+            address = preferences[ADDRESS] ?: DEFAULT_SERVER_ADDRESS,
             imageQuality = preferences[IMAGE_QUALITY] ?: 0.2f,
             theme = preferences[THEME]?.let { Theme.valueOf(it) } ?: Theme.SYSTEM,
             defaultBookmarkView = preferences[DEFAULT_BOOKMARK_VIEW]?.let { BookmarkView.valueOf(it) } ?: BookmarkView.READER,
