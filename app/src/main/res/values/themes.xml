@@ -5,4 +5,13 @@
         name="Theme.Karabau"
         parent="android:Theme.Material.Light.NoActionBar"
     />
+
+    <style
+        name="Theme.Karabau.Splash"
+        parent="Theme.SplashScreen"
+    >
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenBackground">@android:color/system_accent1_900</item>
+        <item name="postSplashScreenTheme">@style/Theme.Karabau</item>
+    </style>
 </resources>
