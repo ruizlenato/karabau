@@ -43,10 +43,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -63,6 +63,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -569,6 +571,34 @@ private fun ProfileAvatar(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MediumFlexibleTopAppBar(
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 12.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = "Manage and browse your tags",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TagsContent(
     isLoading: Boolean,
@@ -599,11 +629,9 @@ private fun TagsContent(
 
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "Tags",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        MediumFlexibleTopAppBar(
+            title = "Tags",
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         when {
@@ -664,45 +692,44 @@ private fun TagsContent(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     itemsIndexed(tags, key = { _, it -> it.id }) { index, tag ->
-                        Row(
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onTagClick(tag) }
-                                .padding(vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(vertical = 2.dp),
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceContainer
                         ) {
-                            Text(
-                                text = tag.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Text(
-                                text = buildString {
-                                    append(tag.numBookmarks)
-                                    append(' ')
-                                    append(if (tag.numBookmarks == 1) "bookmark" else "bookmarks")
+                            ListItem(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onTagClick(tag) },
+                                trailingContent = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = tag.numBookmarks.toString(),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .padding(start = 6.dp)
-                                    .size(18.dp)
-                            )
-                        }
-
-                        if (index < tags.lastIndex) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
-                            )
+                                colors = ListItemDefaults.colors(
+                                    containerColor = Color.Transparent
+                                )
+                            ) {
+                                Text(
+                                    text = tag.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
