@@ -46,11 +46,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -495,12 +495,6 @@ private fun HomeContent(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     ExpressiveLoadingIndicator()
-                    Text(
-                        text = "Loading bookmarks...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 12.dp)
-                    )
                 }
             }
         }
@@ -585,7 +579,7 @@ private fun HomeContent(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ExpressiveLoadingIndicator() {
-    LoadingIndicator(modifier = Modifier.size(56.dp))
+    ContainedLoadingIndicator(modifier = Modifier.size(72.dp))
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -608,9 +602,9 @@ private fun PullToRefreshExpressiveIndicator(
             exit = fadeOut(animationSpec = tween(150)) + slideOutVertically(targetOffsetY = { -10 })
         ) {
             if (isRefreshing) {
-                LoadingIndicator(modifier = Modifier.size(48.dp))
+                ContainedLoadingIndicator(modifier = Modifier.size(48.dp))
             } else {
-                LoadingIndicator(
+                ContainedLoadingIndicator(
                     progress = { state.distanceFraction.coerceIn(0f, 1f) },
                     modifier = Modifier.size(48.dp)
                 )
