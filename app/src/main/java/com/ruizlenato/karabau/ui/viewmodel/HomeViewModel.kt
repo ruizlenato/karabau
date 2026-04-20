@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val bookmarks: List<BookmarkItem> = emptyList(),
     val displayedBookmarks: List<BookmarkItem> = emptyList(),
     val searchQuery: String = "",
@@ -35,8 +36,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     fun loadSavedItems() {
+        loadSavedItemsInternal(isRefresh = false)
+    }
+
+    fun refreshSavedItems() {
+        loadSavedItemsInternal(isRefresh = true)
+    }
+
+    private fun loadSavedItemsInternal(isRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isLoading = if (isRefresh) it.isLoading else true,
+                    isRefreshing = isRefresh,
+                    errorMessage = null
+                )
+            }
 
             val settings = settingsDataStore.settingsFlow.first()
             val repository = KarabauRepository(settings)
@@ -70,6 +85,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            isRefreshing = false,
                             bookmarks = result.data,
                             displayedBookmarks = computeDisplayedBookmarks(
                                 bookmarks = result.data,
@@ -85,7 +101,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = result.message
+                            isRefreshing = false,
+                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else result.message
                         )
                     }
                 }
@@ -94,7 +111,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = result.message
+                            isRefreshing = false,
+                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else result.message
                         )
                     }
                 }
