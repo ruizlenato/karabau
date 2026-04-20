@@ -47,7 +47,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,7 +67,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.ui.theme.authOutlinedTextFieldColors
 import com.ruizlenato.karabau.ui.viewmodel.AuthState
 import com.ruizlenato.karabau.ui.viewmodel.AuthViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +77,6 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -87,6 +84,18 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var emailFieldError by remember { mutableStateOf<String?>(null) }
     var passwordFieldError by remember { mutableStateOf<String?>(null) }
+    val isLoading = uiState.authState == AuthState.LOADING
+    val textFieldColors = authOutlinedTextFieldColors()
+    val emailKeyboardOptions = KeyboardOptions(
+        keyboardType = KeyboardType.Email,
+        imeAction = ImeAction.Next,
+        platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
+    )
+    val passwordKeyboardOptions = KeyboardOptions(
+        keyboardType = KeyboardType.Password,
+        imeAction = ImeAction.Done,
+        platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
+    )
 
     fun submitLogin() {
         val emailBlank = uiState.email.isBlank()
@@ -136,13 +145,11 @@ fun LoginScreen(
                 viewModel.dismissError()
                 return@let
             }
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(
-                    message = message,
-                    duration = SnackbarDuration.Long
-                )
-                viewModel.dismissError()
-            }
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Long
+            )
+            viewModel.dismissError()
         }
     }
 
@@ -226,16 +233,12 @@ fun LoginScreen(
                                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                             )
                         },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next,
-                            platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
-                        ),
+                        keyboardOptions = emailKeyboardOptions,
                         keyboardActions = KeyboardActions(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
                         singleLine = true,
-                        enabled = uiState.authState != AuthState.LOADING,
+                        enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
@@ -244,7 +247,7 @@ fun LoginScreen(
                         supportingText = emailFieldError?.let {
                             { Text(it, color = MaterialTheme.colorScheme.error) }
                         },
-                        colors = authOutlinedTextFieldColors()
+                        colors = textFieldColors
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -273,25 +276,21 @@ fun LoginScreen(
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done,
-                            platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
-                        ),
+                        keyboardOptions = passwordKeyboardOptions,
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 submitLogin()
                             }
                         ),
                         singleLine = true,
-                        enabled = uiState.authState != AuthState.LOADING,
+                        enabled = !isLoading,
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.large,
                         isError = passwordFieldError != null,
                         supportingText = passwordFieldError?.let {
                             { Text(it, color = MaterialTheme.colorScheme.error) }
                         },
-                        colors = authOutlinedTextFieldColors()
+                        colors = textFieldColors
                     )
                 }
 
@@ -299,7 +298,7 @@ fun LoginScreen(
                     onClick = {
                         submitLogin()
                     },
-                    enabled = uiState.authState != AuthState.LOADING,
+                    enabled = !isLoading,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
@@ -311,7 +310,7 @@ fun LoginScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    if (uiState.authState == AuthState.LOADING) {
+                    if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = MaterialTheme.colorScheme.onPrimary,
