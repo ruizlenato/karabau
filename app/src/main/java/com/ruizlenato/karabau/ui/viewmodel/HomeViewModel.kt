@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.Settings
+import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
@@ -25,6 +26,7 @@ data class HomeUiState(
     val tags: List<TagItem> = emptyList(),
     val tagsErrorMessage: String? = null,
     val selectedTag: TagItem? = null,
+    val selectedTagDetails: TagDetails? = null,
     val isTagBookmarksLoading: Boolean = false,
     val tagBookmarks: List<BookmarkItem> = emptyList(),
     val tagBookmarksErrorMessage: String? = null,
@@ -208,18 +210,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 selectedTag = tag,
+                selectedTagDetails = null,
                 isTagBookmarksLoading = true,
                 tagBookmarks = emptyList(),
                 tagBookmarksErrorMessage = null
             )
         }
-        loadBookmarksForSelectedTag()
+        loadSelectedTagContent()
     }
 
     fun closeTagDetail() {
         _uiState.update {
             it.copy(
                 selectedTag = null,
+                selectedTagDetails = null,
                 isTagBookmarksLoading = false,
                 tagBookmarks = emptyList(),
                 tagBookmarksErrorMessage = null
@@ -229,11 +233,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshTagBookmarks() {
         if (_uiState.value.selectedTag != null) {
-            loadBookmarksForSelectedTag()
+            loadSelectedTagContent()
         }
     }
 
-    private fun loadBookmarksForSelectedTag() {
+    private fun loadSelectedTagContent() {
         val selectedTag = _uiState.value.selectedTag ?: return
 
         viewModelScope.launch {
@@ -247,9 +251,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val settings = settingsDataStore.settingsFlow.first()
             val repository = KarabauRepository(settings)
 
+            when (val tagResult = repository.getTag(selectedTag.id)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(selectedTagDetails = tagResult.data)
+                    }
+                }
+
+                is ApiResult.Error -> Unit
+                is ApiResult.NetworkError -> Unit
+            }
+
             when (
-                val result = repository.getBookmarks(
-                    archived = false,
+                val result = repository.getAllBookmarksByTag(
+                    archived = null,
                     tagId = selectedTag.id,
                     limit = 20
                 )

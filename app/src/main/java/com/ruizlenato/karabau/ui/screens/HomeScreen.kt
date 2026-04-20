@@ -98,6 +98,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 
@@ -268,6 +269,7 @@ fun HomeScreen(
                             errorMessage = homeUiState.tagsErrorMessage,
                             tags = homeUiState.tags,
                             selectedTag = homeUiState.selectedTag,
+                            selectedTagDetails = homeUiState.selectedTagDetails,
                             isTagBookmarksLoading = homeUiState.isTagBookmarksLoading,
                             tagBookmarks = homeUiState.tagBookmarks,
                             tagBookmarksErrorMessage = homeUiState.tagBookmarksErrorMessage,
@@ -573,6 +575,7 @@ private fun TagsContent(
     errorMessage: String?,
     tags: List<TagItem>,
     selectedTag: TagItem?,
+    selectedTagDetails: TagDetails?,
     isTagBookmarksLoading: Boolean,
     tagBookmarks: List<BookmarkItem>,
     tagBookmarksErrorMessage: String?,
@@ -583,7 +586,8 @@ private fun TagsContent(
 ) {
     if (selectedTag != null) {
         TagDetailContent(
-            tag = selectedTag,
+            fallbackTag = selectedTag,
+            tagDetails = selectedTagDetails,
             isLoading = isTagBookmarksLoading,
             errorMessage = tagBookmarksErrorMessage,
             bookmarks = tagBookmarks,
@@ -709,7 +713,8 @@ private fun TagsContent(
 
 @Composable
 private fun TagDetailContent(
-    tag: TagItem,
+    fallbackTag: TagItem,
+    tagDetails: TagDetails?,
     isLoading: Boolean,
     errorMessage: String?,
     bookmarks: List<BookmarkItem>,
@@ -727,6 +732,8 @@ private fun TagDetailContent(
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
+        val title = tagDetails?.name ?: fallbackTag.name
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -740,7 +747,7 @@ private fun TagDetailContent(
                 )
             }
             Text(
-                text = tag.name,
+                text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
