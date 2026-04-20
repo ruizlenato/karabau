@@ -3,7 +3,7 @@ package com.ruizlenato.karabau.data.model
 import com.google.gson.JsonObject
 
 data class GetBookmarksRequest(
-    val archived: Boolean = false,
+    val archived: Boolean? = false,
     val includeContent: Boolean = false,
     val useCursorV2: Boolean = true,
     val limit: Int = 20,

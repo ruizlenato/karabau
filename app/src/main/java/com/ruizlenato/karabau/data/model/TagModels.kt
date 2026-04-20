@@ -5,3 +5,9 @@ data class TagItem(
     val name: String,
     val numBookmarks: Int
 )
+
+data class TagDetails(
+    val id: String,
+    val name: String,
+    val numBookmarks: Int
+)

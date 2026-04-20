@@ -3,9 +3,12 @@ package com.ruizlenato.karabau.data.remote
 import com.ruizlenato.karabau.data.model.ExchangeKeyRequest
 import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.model.BookmarkCursor
+import com.ruizlenato.karabau.data.model.GetBookmarksResponse
 import com.ruizlenato.karabau.data.model.GetBookmarksRequest
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
+import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
@@ -114,8 +117,9 @@ class KarabauRepository(
     }
 
     suspend fun getBookmarks(
-        archived: Boolean = false,
+        archived: Boolean? = false,
         tagId: String? = null,
+        cursor: BookmarkCursor? = null,
         limit: Int = 20
     ): ApiResult<List<BookmarkItem>> {
         if (!settings.isLoggedIn()) {
@@ -129,18 +133,25 @@ class KarabauRepository(
                 includeContent = false,
                 useCursorV2 = true,
                 tagId = tagId,
+                cursor = cursor,
                 limit = limit
             )
 
             val inputJson = JSONObject().apply {
                 put("0", JSONObject().apply {
                     put("json", JSONObject().apply {
-                        put("archived", request.archived)
+                        request.archived?.let { put("archived", it) }
                         put("includeContent", request.includeContent)
                         put("useCursorV2", request.useCursorV2)
                         put("limit", request.limit)
                         request.tagId?.takeIf { it.isNotBlank() }?.let {
                             put("tagId", it)
+                        }
+                        request.cursor?.let {
+                            put("cursor", JSONObject().apply {
+                                put("createdAt", it.createdAt)
+                                put("id", it.id)
+                            })
                         }
                     })
                 })
@@ -154,9 +165,9 @@ class KarabauRepository(
 
             if (response.isSuccessful) {
                 val rawBody = response.body()?.string().orEmpty()
-                val bookmarks = parseBookmarksFromBatchResponse(rawBody)
-                if (bookmarks != null) {
-                    ApiResult.Success(bookmarks)
+                val bookmarksPage = parseBookmarksPageFromBatchResponse(rawBody)
+                if (bookmarksPage != null) {
+                    ApiResult.Success(bookmarksPage.bookmarks)
                 } else {
                     ApiResult.Error("UNKNOWN", "Empty response")
                 }
@@ -164,6 +175,46 @@ class KarabauRepository(
                 val errorBody = response.errorBody()?.string().orEmpty()
                 ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load bookmarks" })
             }
+        } catch (e: IOException) {
+            ApiResult.NetworkError(e.message ?: "Network error")
+        } catch (e: Exception) {
+            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
+        }
+    }
+
+    suspend fun getAllBookmarksByTag(
+        tagId: String,
+        archived: Boolean? = null,
+        limit: Int = 20
+    ): ApiResult<List<BookmarkItem>> {
+        if (!settings.isLoggedIn()) {
+            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+        }
+
+        return try {
+            val allItems = mutableListOf<BookmarkItem>()
+            var cursor: BookmarkCursor? = null
+
+            do {
+                val pageResult = getBookmarksPage(
+                    archived = archived,
+                    tagId = tagId,
+                    cursor = cursor,
+                    limit = limit
+                )
+
+                when (pageResult) {
+                    is ApiResult.Success -> {
+                        allItems += pageResult.data.bookmarks
+                        cursor = pageResult.data.nextCursor
+                    }
+
+                    is ApiResult.Error -> return pageResult
+                    is ApiResult.NetworkError -> return pageResult
+                }
+            } while (cursor != null)
+
+            ApiResult.Success(allItems)
         } catch (e: IOException) {
             ApiResult.NetworkError(e.message ?: "Network error")
         } catch (e: Exception) {
@@ -261,11 +312,108 @@ class KarabauRepository(
         }
     }
 
-    private fun parseBookmarksFromBatchResponse(raw: String): List<BookmarkItem>? {
+    suspend fun getTag(tagId: String): ApiResult<TagDetails> {
+        if (!settings.isLoggedIn()) {
+            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+        }
+
+        return try {
+            val auth = "Bearer ${settings.apiKey}"
+            val inputJson = JSONObject().apply {
+                put("0", JSONObject().apply {
+                    put("json", JSONObject().apply {
+                        put("tagId", tagId)
+                    })
+                })
+            }.toString()
+
+            val response = apiService.getTag(
+                auth = auth,
+                batch = "1",
+                input = inputJson
+            )
+
+            if (response.isSuccessful) {
+                val rawBody = response.body()?.string().orEmpty()
+                val tag = parseTagDetailsFromBatchResponse(rawBody)
+                if (tag != null) {
+                    ApiResult.Success(tag)
+                } else {
+                    ApiResult.Error("UNKNOWN", "Empty response")
+                }
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load tag" })
+            }
+        } catch (e: IOException) {
+            ApiResult.NetworkError(e.message ?: "Network error")
+        } catch (e: Exception) {
+            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
+        }
+    }
+
+    private suspend fun getBookmarksPage(
+        archived: Boolean?,
+        tagId: String?,
+        cursor: BookmarkCursor?,
+        limit: Int
+    ): ApiResult<GetBookmarksResponse> {
+        val auth = "Bearer ${settings.apiKey}"
+        val request = GetBookmarksRequest(
+            archived = archived,
+            includeContent = false,
+            useCursorV2 = true,
+            tagId = tagId,
+            cursor = cursor,
+            limit = limit
+        )
+
+        val inputJson = JSONObject().apply {
+            put("0", JSONObject().apply {
+                put("json", JSONObject().apply {
+                    request.archived?.let { put("archived", it) }
+                    put("includeContent", request.includeContent)
+                    put("useCursorV2", request.useCursorV2)
+                    put("limit", request.limit)
+                    request.tagId?.takeIf { it.isNotBlank() }?.let {
+                        put("tagId", it)
+                    }
+                    request.cursor?.let {
+                        put("cursor", JSONObject().apply {
+                            put("createdAt", it.createdAt)
+                            put("id", it.id)
+                        })
+                    }
+                })
+            })
+        }.toString()
+
+        val response = apiService.getBookmarks(
+            auth = auth,
+            batch = "1",
+            input = inputJson
+        )
+
+        if (!response.isSuccessful) {
+            val errorBody = response.errorBody()?.string().orEmpty()
+            return ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load bookmarks" })
+        }
+
+        val rawBody = response.body()?.string().orEmpty()
+        val bookmarksPage = parseBookmarksPageFromBatchResponse(rawBody)
+        return if (bookmarksPage != null) {
+            ApiResult.Success(bookmarksPage)
+        } else {
+            ApiResult.Error("UNKNOWN", "Empty response")
+        }
+    }
+
+    private fun parseBookmarksPageFromBatchResponse(raw: String): GetBookmarksResponse? {
         if (raw.isBlank()) return null
 
         val json = parseBatchJson(raw) ?: return null
-        val bookmarksArray = json.optJSONArray("bookmarks") ?: return emptyList()
+        val bookmarksArray = json.optJSONArray("bookmarks")
+            ?: return GetBookmarksResponse(bookmarks = emptyList(), nextCursor = null)
 
         val items = mutableListOf<BookmarkItem>()
         for (i in 0 until bookmarksArray.length()) {
@@ -295,7 +443,21 @@ class KarabauRepository(
             )
         }
 
-        return items
+        val nextCursorObject = json.optJSONObject("nextCursor")
+        val nextCursor = nextCursorObject?.let {
+            val id = it.optStringOrNull("id")
+            val createdAt = it.optStringOrNull("createdAt")
+            if (id != null && createdAt != null) {
+                BookmarkCursor(createdAt = createdAt, id = id)
+            } else {
+                null
+            }
+        }
+
+        return GetBookmarksResponse(
+            bookmarks = items,
+            nextCursor = nextCursor
+        )
     }
 
     private fun parseWhoAmIFromBatchResponse(raw: String): WhoAmIResponse? {
@@ -331,6 +493,21 @@ class KarabauRepository(
         }
 
         return tags
+    }
+
+    private fun parseTagDetailsFromBatchResponse(raw: String): TagDetails? {
+        if (raw.isBlank()) return null
+
+        val json = parseBatchJson(raw) ?: return null
+        val id = json.optStringOrNull("id") ?: return null
+        val name = json.optStringOrNull("name") ?: return null
+        val numBookmarks = json.optInt("numBookmarks", 0)
+
+        return TagDetails(
+            id = id,
+            name = name,
+            numBookmarks = numBookmarks
+        )
     }
 
     private fun parseBatchJson(raw: String): JSONObject? {
