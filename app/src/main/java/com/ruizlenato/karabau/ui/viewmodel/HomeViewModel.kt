@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.Settings
+import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +19,15 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isTagsLoading: Boolean = false,
     val bookmarks: List<BookmarkItem> = emptyList(),
     val displayedBookmarks: List<BookmarkItem> = emptyList(),
+    val tags: List<TagItem> = emptyList(),
+    val tagsErrorMessage: String? = null,
+    val selectedTag: TagItem? = null,
+    val isTagBookmarksLoading: Boolean = false,
+    val tagBookmarks: List<BookmarkItem> = emptyList(),
+    val tagBookmarksErrorMessage: String? = null,
     val searchQuery: String = "",
     val isSearchActive: Boolean = false,
     val profileName: String? = null,
@@ -143,6 +151,137 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     isSearchActive = active
                 )
             )
+        }
+    }
+
+    fun loadTags() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isTagsLoading = true,
+                    tagsErrorMessage = null
+                )
+            }
+
+            val settings = settingsDataStore.settingsFlow.first()
+            val repository = KarabauRepository(settings)
+
+            when (
+                val result = repository.getTags(
+                    limit = 50,
+                    sortBy = "usage",
+                    page = 0
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagsLoading = false,
+                            tags = result.data,
+                            tagsErrorMessage = null
+                        )
+                    }
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagsLoading = false,
+                            tagsErrorMessage = result.message
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagsLoading = false,
+                            tagsErrorMessage = result.message
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun openTag(tag: TagItem) {
+        _uiState.update {
+            it.copy(
+                selectedTag = tag,
+                isTagBookmarksLoading = true,
+                tagBookmarks = emptyList(),
+                tagBookmarksErrorMessage = null
+            )
+        }
+        loadBookmarksForSelectedTag()
+    }
+
+    fun closeTagDetail() {
+        _uiState.update {
+            it.copy(
+                selectedTag = null,
+                isTagBookmarksLoading = false,
+                tagBookmarks = emptyList(),
+                tagBookmarksErrorMessage = null
+            )
+        }
+    }
+
+    fun refreshTagBookmarks() {
+        if (_uiState.value.selectedTag != null) {
+            loadBookmarksForSelectedTag()
+        }
+    }
+
+    private fun loadBookmarksForSelectedTag() {
+        val selectedTag = _uiState.value.selectedTag ?: return
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isTagBookmarksLoading = true,
+                    tagBookmarksErrorMessage = null
+                )
+            }
+
+            val settings = settingsDataStore.settingsFlow.first()
+            val repository = KarabauRepository(settings)
+
+            when (
+                val result = repository.getBookmarks(
+                    archived = false,
+                    tagId = selectedTag.id,
+                    limit = 20
+                )
+            ) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagBookmarksLoading = false,
+                            tagBookmarks = result.data,
+                            tagBookmarksErrorMessage = null
+                        )
+                    }
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagBookmarksLoading = false,
+                            tagBookmarksErrorMessage = result.message
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagBookmarksLoading = false,
+                            tagBookmarksErrorMessage = result.message
+                        )
+                    }
+                }
+            }
         }
     }
 }

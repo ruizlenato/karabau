@@ -3,15 +3,19 @@ package com.ruizlenato.karabau.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
@@ -28,8 +32,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -40,8 +46,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
@@ -91,6 +98,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 
 private data class HomeDestination(
@@ -100,7 +108,7 @@ private data class HomeDestination(
 
 private val homeDestinations = listOf(
     HomeDestination(label = "Home", icon = Icons.Default.Home),
-    HomeDestination(label = "Settings", icon = Icons.Default.Settings)
+    HomeDestination(label = "Tags", icon = Icons.Default.LocalOffer)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,6 +122,13 @@ fun HomeScreen(
 
     LaunchedEffect(Unit) {
         homeViewModel.loadSavedItems()
+        homeViewModel.loadTags()
+    }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 1) {
+            homeViewModel.loadTags()
+        }
     }
 
     BackHandler(enabled = selectedTab == 0 && homeUiState.isSearchActive) {
@@ -121,77 +136,148 @@ fun HomeScreen(
         homeViewModel.onSearchQueryChange("")
     }
 
-    Scaffold(
-        topBar = {
-            HomeTopBar(
-                query = homeUiState.searchQuery,
-                isSearchActive = homeUiState.isSearchActive,
-                profileName = homeUiState.profileName,
-                profileImage = homeUiState.profileImage,
-                profileImageHeaders = homeUiState.profileImageHeaders,
-                onQueryChange = homeViewModel::onSearchQueryChange,
-                onSearchActiveChange = homeViewModel::onSearchActiveChange,
-                onClearQuery = { homeViewModel.onSearchQueryChange("") }
-            )
-        },
-        floatingActionButton = {
-            if (selectedTab == 0 && !homeUiState.isSearchActive) {
-                FloatingActionButton(
-                    onClick = { },
-                    modifier = Modifier.size(70.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Add bookmark",
-                        modifier = Modifier.size(28.dp)
-                    )
+    BackHandler(enabled = selectedTab == 2) {
+        selectedTab = 0
+    }
+
+    BackHandler(enabled = selectedTab == 1 && homeUiState.selectedTag != null) {
+        homeViewModel.closeTagDetail()
+    }
+
+    AnimatedContent(
+        targetState = selectedTab,
+        transitionSpec = {
+            when {
+                targetState == 2 && initialState != 2 -> {
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> (fullWidth * 1.05f).toInt() },
+                        animationSpec = tween(durationMillis = 360, easing = LinearOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(240, easing = LinearOutSlowInEasing)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -(fullWidth * 0.1f).toInt() },
+                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                            ) + fadeOut(animationSpec = tween(220, easing = FastOutLinearInEasing))
+                        ).using(SizeTransform(clip = false))
+                }
+
+                initialState == 2 && targetState != 2 -> {
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -(fullWidth * 0.1f).toInt() },
+                        animationSpec = tween(durationMillis = 360, easing = LinearOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(240, easing = LinearOutSlowInEasing)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> (fullWidth * 1.05f).toInt() },
+                                animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)
+                            ) + fadeOut(animationSpec = tween(240, easing = FastOutLinearInEasing))
+                        ).using(SizeTransform(clip = false))
+                }
+
+                else -> {
+                    fadeIn(animationSpec = tween(120))
+                        .togetherWith(fadeOut(animationSpec = tween(90)))
                 }
             }
         },
-        floatingActionButtonPosition = FabPosition.End,
-        bottomBar = {
-            if (!homeUiState.isSearchActive) {
-                NavigationBar(
-                    tonalElevation = 0.dp,
-                    windowInsets = WindowInsets(0.dp)
-                ) {
-                    homeDestinations.forEachIndexed { index, destination ->
-                        NavigationBarItem(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            icon = {
-                                Icon(
-                                    imageVector = destination.icon,
-                                    contentDescription = destination.label
+        label = "mainTabTransition"
+    ) { activeTab ->
+        if (activeTab == 2) {
+            SettingsContent(onLogout = onLogout)
+        } else {
+            Scaffold(
+                topBar = {
+                    if (activeTab == 0) {
+                        HomeTopBar(
+                            query = homeUiState.searchQuery,
+                            isSearchActive = homeUiState.isSearchActive,
+                            profileName = homeUiState.profileName,
+                            profileImage = homeUiState.profileImage,
+                            profileImageHeaders = homeUiState.profileImageHeaders,
+                            onQueryChange = homeViewModel::onSearchQueryChange,
+                            onSearchActiveChange = homeViewModel::onSearchActiveChange,
+                            onClearQuery = { homeViewModel.onSearchQueryChange("") },
+                            onProfileClick = {
+                                homeViewModel.onSearchActiveChange(false)
+                                homeViewModel.onSearchQueryChange("")
+                                selectedTab = 2
+                            }
+                        )
+                    }
+                },
+                floatingActionButton = {
+                    if (activeTab == 0 && !homeUiState.isSearchActive) {
+                        FloatingActionButton(
+                            onClick = { },
+                            modifier = Modifier.size(70.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Add bookmark",
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                },
+                floatingActionButtonPosition = FabPosition.End,
+                bottomBar = {
+                    if (!homeUiState.isSearchActive) {
+                        NavigationBar(
+                            tonalElevation = 0.dp,
+                            windowInsets = WindowInsets(0.dp)
+                        ) {
+                            homeDestinations.forEachIndexed { index, destination ->
+                                NavigationBarItem(
+                                    selected = activeTab == index,
+                                    onClick = { selectedTab = index },
+                                    icon = {
+                                        Icon(
+                                            imageVector = destination.icon,
+                                            contentDescription = destination.label
+                                        )
+                                    },
+                                    label = { Text(destination.label) }
                                 )
-                            },
-                            label = { Text(destination.label) }
+                            }
+                        }
+                    }
+                }
+            ) { paddingValues ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    when (activeTab) {
+                        0 -> HomeContent(
+                            isLoading = homeUiState.isLoading,
+                            isRefreshing = homeUiState.isRefreshing,
+                            errorMessage = homeUiState.errorMessage,
+                            bookmarks = homeUiState.displayedBookmarks,
+                            isSearchActive = homeUiState.isSearchActive,
+                            searchQuery = homeUiState.searchQuery,
+                            onRetry = { homeViewModel.loadSavedItems() },
+                            onRefresh = { homeViewModel.refreshSavedItems() }
+                        )
+
+                        1 -> TagsContent(
+                            isLoading = homeUiState.isTagsLoading,
+                            errorMessage = homeUiState.tagsErrorMessage,
+                            tags = homeUiState.tags,
+                            selectedTag = homeUiState.selectedTag,
+                            isTagBookmarksLoading = homeUiState.isTagBookmarksLoading,
+                            tagBookmarks = homeUiState.tagBookmarks,
+                            tagBookmarksErrorMessage = homeUiState.tagBookmarksErrorMessage,
+                            onRefresh = { homeViewModel.loadTags() },
+                            onTagClick = homeViewModel::openTag,
+                            onCloseTagDetail = homeViewModel::closeTagDetail,
+                            onRefreshTagBookmarks = homeViewModel::refreshTagBookmarks
                         )
                     }
                 }
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when (selectedTab) {
-                0 -> HomeContent(
-                    isLoading = homeUiState.isLoading,
-                    isRefreshing = homeUiState.isRefreshing,
-                    errorMessage = homeUiState.errorMessage,
-                    bookmarks = homeUiState.displayedBookmarks,
-                    isSearchActive = homeUiState.isSearchActive,
-                    searchQuery = homeUiState.searchQuery,
-                    onRetry = { homeViewModel.loadSavedItems() },
-                    onRefresh = { homeViewModel.refreshSavedItems() }
-                )
-                1 -> SettingsContent(onLogout = onLogout)
             }
         }
     }
@@ -206,7 +292,8 @@ private fun HomeTopBar(
     profileImageHeaders: Map<String, String>,
     onQueryChange: (String) -> Unit,
     onSearchActiveChange: (Boolean) -> Unit,
-    onClearQuery: () -> Unit
+    onClearQuery: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val focusManager = LocalFocusManager.current
@@ -275,6 +362,7 @@ private fun HomeTopBar(
                     profileName = profileName,
                     profileImage = profileImage,
                     profileImageHeaders = profileImageHeaders,
+                    onProfileClick = onProfileClick,
                     onClick = { onSearchActiveChange(true) },
                     modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
                 )
@@ -370,6 +458,7 @@ private fun CompactSearchBar(
     profileName: String?,
     profileImage: String?,
     profileImageHeaders: Map<String, String>,
+    onProfileClick: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -418,6 +507,7 @@ private fun CompactSearchBar(
             name = profileName,
             image = profileImage,
             imageHeaders = profileImageHeaders,
+            onClick = onProfileClick,
             modifier = Modifier
                 .padding(start = 12.dp)
                 .size(52.dp)
@@ -430,6 +520,7 @@ private fun ProfileAvatar(
     name: String?,
     image: String?,
     imageHeaders: Map<String, String>,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -455,13 +546,15 @@ private fun ProfileAvatar(
             model = imageRequest,
             contentDescription = "Profile",
             contentScale = ContentScale.Crop,
-            modifier = modifier.clip(CircleShape)
+            modifier = modifier
+                .clip(CircleShape)
+                .clickable(onClick = onClick)
         )
     } else {
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = modifier
+            modifier = modifier.clickable(onClick = onClick)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
@@ -469,6 +562,250 @@ private fun ProfileAvatar(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagsContent(
+    isLoading: Boolean,
+    errorMessage: String?,
+    tags: List<TagItem>,
+    selectedTag: TagItem?,
+    isTagBookmarksLoading: Boolean,
+    tagBookmarks: List<BookmarkItem>,
+    tagBookmarksErrorMessage: String?,
+    onRefresh: () -> Unit,
+    onTagClick: (TagItem) -> Unit,
+    onCloseTagDetail: () -> Unit,
+    onRefreshTagBookmarks: () -> Unit
+) {
+    if (selectedTag != null) {
+        TagDetailContent(
+            tag = selectedTag,
+            isLoading = isTagBookmarksLoading,
+            errorMessage = tagBookmarksErrorMessage,
+            bookmarks = tagBookmarks,
+            onBack = onCloseTagDetail,
+            onRetry = onRefreshTagBookmarks
+        )
+        return
+    }
+
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Tags",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        )
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ContainedLoadingIndicator(modifier = Modifier.size(56.dp))
+                }
+            }
+
+            errorMessage != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Failed to load tags",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(
+                            onClick = onRefresh,
+                            modifier = Modifier.padding(top = 12.dp)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+
+            tags.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "No Tags",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Tags will appear as you organize your bookmarks",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    itemsIndexed(tags, key = { _, it -> it.id }) { index, tag ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onTagClick(tag) }
+                                .padding(vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = tag.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Text(
+                                text = buildString {
+                                    append(tag.numBookmarks)
+                                    append(' ')
+                                    append(if (tag.numBookmarks == 1) "bookmark" else "bookmarks")
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .padding(start = 6.dp)
+                                    .size(18.dp)
+                            )
+                        }
+
+                        if (index < tags.lastIndex) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagDetailContent(
+    tag: TagItem,
+    isLoading: Boolean,
+    errorMessage: String?,
+    bookmarks: List<BookmarkItem>,
+    onBack: () -> Unit,
+    onRetry: () -> Unit
+) {
+    val cardColors = CardDefaults.elevatedCardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    )
+    val cardElevation = CardDefaults.elevatedCardElevation(
+        defaultElevation = 1.dp,
+        hoveredElevation = 2.dp,
+        pressedElevation = 1.dp,
+        draggedElevation = 4.dp
+    )
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+            Text(
+                text = tag.name,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ContainedLoadingIndicator(modifier = Modifier.size(56.dp))
+                }
+            }
+
+            errorMessage != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Failed to load bookmarks",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(
+                            onClick = onRetry,
+                            modifier = Modifier.padding(top = 12.dp)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+
+            bookmarks.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No bookmarks",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(bookmarks, key = { it.id }) { bookmark ->
+                        BookmarkListItem(
+                            bookmark = bookmark,
+                            cardColors = cardColors,
+                            cardElevation = cardElevation
+                        )
+                    }
+                }
             }
         }
     }
