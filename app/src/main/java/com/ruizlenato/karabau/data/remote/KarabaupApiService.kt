@@ -46,6 +46,13 @@ interface KarabauApiService {
         @Query("input") input: String
     ): Response<ResponseBody>
 
+    @GET("api/trpc/tags.list")
+    suspend fun listTags(
+        @Header("Authorization") auth: String,
+        @Query("batch") batch: String,
+        @Query("input") input: String
+    ): Response<ResponseBody>
+
     @GET("api/health")
     suspend fun healthCheck(): Response<HealthCheckResponse>
 

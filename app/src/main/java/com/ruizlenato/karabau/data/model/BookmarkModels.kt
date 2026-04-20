@@ -7,6 +7,7 @@ data class GetBookmarksRequest(
     val includeContent: Boolean = false,
     val useCursorV2: Boolean = true,
     val limit: Int = 20,
+    val tagId: String? = null,
     val cursor: BookmarkCursor? = null
 )
 

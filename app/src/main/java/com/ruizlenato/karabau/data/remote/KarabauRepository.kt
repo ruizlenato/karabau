@@ -6,6 +6,7 @@ import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.GetBookmarksRequest
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
+import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
 import com.ruizlenato.karabau.data.model.WhoAmIResponse
@@ -114,6 +115,7 @@ class KarabauRepository(
 
     suspend fun getBookmarks(
         archived: Boolean = false,
+        tagId: String? = null,
         limit: Int = 20
     ): ApiResult<List<BookmarkItem>> {
         if (!settings.isLoggedIn()) {
@@ -126,6 +128,7 @@ class KarabauRepository(
                 archived = archived,
                 includeContent = false,
                 useCursorV2 = true,
+                tagId = tagId,
                 limit = limit
             )
 
@@ -136,6 +139,9 @@ class KarabauRepository(
                         put("includeContent", request.includeContent)
                         put("useCursorV2", request.useCursorV2)
                         put("limit", request.limit)
+                        request.tagId?.takeIf { it.isNotBlank() }?.let {
+                            put("tagId", it)
+                        }
                     })
                 })
             }.toString()
@@ -203,6 +209,58 @@ class KarabauRepository(
         }
     }
 
+    suspend fun getTags(
+        nameContains: String? = null,
+        limit: Int = 50,
+        sortBy: String = if (nameContains.isNullOrBlank()) "usage" else "relevance",
+        page: Int = 0
+    ): ApiResult<List<TagItem>> {
+        if (!settings.isLoggedIn()) {
+            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+        }
+
+        return try {
+            val auth = "Bearer ${settings.apiKey}"
+            val inputJson = JSONObject().apply {
+                put("0", JSONObject().apply {
+                    put("json", JSONObject().apply {
+                        put("limit", limit)
+                        put("sortBy", sortBy)
+                        put("cursor", JSONObject().apply {
+                            put("page", page)
+                        })
+                        nameContains?.takeIf { it.isNotBlank() }?.let {
+                            put("nameContains", it)
+                        }
+                    })
+                })
+            }.toString()
+
+            val response = apiService.listTags(
+                auth = auth,
+                batch = "1",
+                input = inputJson
+            )
+
+            if (response.isSuccessful) {
+                val rawBody = response.body()?.string().orEmpty()
+                val tags = parseTagsListFromBatchResponse(rawBody)
+                if (tags != null) {
+                    ApiResult.Success(tags)
+                } else {
+                    ApiResult.Error("UNKNOWN", "Empty response")
+                }
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load tags" })
+            }
+        } catch (e: IOException) {
+            ApiResult.NetworkError(e.message ?: "Network error")
+        } catch (e: Exception) {
+            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
+        }
+    }
+
     private fun parseBookmarksFromBatchResponse(raw: String): List<BookmarkItem>? {
         if (raw.isBlank()) return null
 
@@ -251,6 +309,28 @@ class KarabauRepository(
             email = json.optStringOrNull("email"),
             image = json.optStringOrNull("image")
         )
+    }
+
+    private fun parseTagsListFromBatchResponse(raw: String): List<TagItem>? {
+        if (raw.isBlank()) return null
+
+        val json = parseBatchJson(raw) ?: return null
+        val tagsArray = json.optJSONArray("tags") ?: return emptyList()
+
+        val tags = mutableListOf<TagItem>()
+        for (i in 0 until tagsArray.length()) {
+            val obj = tagsArray.optJSONObject(i) ?: continue
+            val id = obj.optStringOrNull("id") ?: continue
+            val name = obj.optStringOrNull("name") ?: continue
+            val numBookmarks = obj.optInt("numBookmarks", 0)
+            tags += TagItem(
+                id = id,
+                name = name,
+                numBookmarks = numBookmarks
+            )
+        }
+
+        return tags
     }
 
     private fun parseBatchJson(raw: String): JSONObject? {
