@@ -21,6 +21,7 @@ data class HomeUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isTagsLoading: Boolean = false,
+    val isTagsRefreshing: Boolean = false,
     val bookmarks: List<BookmarkItem> = emptyList(),
     val displayedBookmarks: List<BookmarkItem> = emptyList(),
     val tags: List<TagItem> = emptyList(),
@@ -157,10 +158,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadTags() {
+        loadTagsInternal(isRefresh = false)
+    }
+
+    fun refreshTags() {
+        loadTagsInternal(isRefresh = true)
+    }
+
+    private fun loadTagsInternal(isRefresh: Boolean) {
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
-                    isTagsLoading = true,
+                    isTagsLoading = if (isRefresh) it.isTagsLoading else true,
+                    isTagsRefreshing = isRefresh,
                     tagsErrorMessage = null
                 )
             }
@@ -179,6 +189,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isTagsLoading = false,
+                            isTagsRefreshing = false,
                             tags = result.data,
                             tagsErrorMessage = null
                         )
@@ -189,7 +200,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isTagsLoading = false,
-                            tagsErrorMessage = result.message
+                            isTagsRefreshing = false,
+                            tagsErrorMessage = if (isRefresh && it.tags.isNotEmpty()) null else result.message
                         )
                     }
                 }
@@ -198,7 +210,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isTagsLoading = false,
-                            tagsErrorMessage = result.message
+                            isTagsRefreshing = false,
+                            tagsErrorMessage = if (isRefresh && it.tags.isNotEmpty()) null else result.message
                         )
                     }
                 }

@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -45,6 +47,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
@@ -73,10 +78,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -188,7 +198,10 @@ fun HomeScreen(
         label = "mainTabTransition"
     ) { activeTab ->
         if (activeTab == 2) {
-            SettingsContent(onLogout = onLogout)
+            SettingsContent(
+                onLogout = onLogout,
+                onBack = { selectedTab = 0 }
+            )
         } else {
             Scaffold(
                 topBar = {
@@ -270,6 +283,7 @@ fun HomeScreen(
 
                         1 -> TagsContent(
                             isLoading = homeUiState.isTagsLoading,
+                            isRefreshing = homeUiState.isTagsRefreshing,
                             errorMessage = homeUiState.tagsErrorMessage,
                             tags = homeUiState.tags,
                             selectedTag = homeUiState.selectedTag,
@@ -277,7 +291,7 @@ fun HomeScreen(
                             isTagBookmarksLoading = homeUiState.isTagBookmarksLoading,
                             tagBookmarks = homeUiState.tagBookmarks,
                             tagBookmarksErrorMessage = homeUiState.tagBookmarksErrorMessage,
-                            onRefresh = { homeViewModel.loadTags() },
+                            onRefresh = { homeViewModel.refreshTags() },
                             onTagClick = homeViewModel::openTag,
                             onCloseTagDetail = homeViewModel::closeTagDetail,
                             onRefreshTagBookmarks = homeViewModel::refreshTagBookmarks
@@ -604,6 +618,7 @@ private fun MediumFlexibleTopAppBar(
 @Composable
 private fun TagsContent(
     isLoading: Boolean,
+    isRefreshing: Boolean,
     errorMessage: String?,
     tags: List<TagItem>,
     selectedTag: TagItem?,
@@ -692,12 +707,12 @@ private fun TagsContent(
                 val pullToRefreshState = rememberPullToRefreshState()
 
                 PullToRefreshBox(
-                    isRefreshing = isLoading,
+                    isRefreshing = isRefreshing,
                     onRefresh = onRefresh,
                     state = pullToRefreshState,
                     indicator = {
                         PullToRefreshExpressiveIndicator(
-                            isRefreshing = isLoading,
+                            isRefreshing = isRefreshing,
                             state = pullToRefreshState
                         )
                     }
@@ -707,7 +722,7 @@ private fun TagsContent(
                             .fillMaxSize()
                             .graphicsLayer {
                                 val threshold = PullToRefreshDefaults.PositionalThreshold.roundToPx()
-                                translationY = pullToRefreshState.distanceFraction * threshold
+                                translationY = pullToRefreshState.distanceFraction.coerceIn(0f, 1f) * threshold
                             },
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                     ) {
@@ -949,6 +964,13 @@ private fun HomeContent(
                     )
                 }
             ) {
+                val contentModifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val threshold = PullToRefreshDefaults.PositionalThreshold.roundToPx()
+                        translationY = pullToRefreshState.distanceFraction.coerceIn(0f, 1f) * threshold
+                    }
+
                 AnimatedContent(
                     targetState = isSearchActive,
                     transitionSpec = {
@@ -958,9 +980,15 @@ private fun HomeContent(
                     label = "content"
                 ) { active ->
                     if (active) {
-                        SearchResultsContent(bookmarks = bookmarks)
+                        SearchResultsContent(
+                            bookmarks = bookmarks,
+                            modifier = contentModifier
+                        )
                     } else {
-                        BookmarkGridContent(bookmarks = bookmarks)
+                        BookmarkGridContent(
+                            bookmarks = bookmarks,
+                            modifier = contentModifier
+                        )
                     }
                 }
             }
@@ -1036,7 +1064,8 @@ private fun SearchEmptyState() {
 
 @Composable
 private fun SearchResultsContent(
-    bookmarks: List<BookmarkItem>
+    bookmarks: List<BookmarkItem>,
+    modifier: Modifier = Modifier
 ) {
     val cardColors = CardDefaults.elevatedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -1048,7 +1077,7 @@ private fun SearchResultsContent(
         draggedElevation = 4.dp
     )
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = modifier) {
         Text(
             text = "Results",
             style = MaterialTheme.typography.titleMedium,
@@ -1156,7 +1185,10 @@ private fun BookmarkListItem(
 }
 
 @Composable
-private fun BookmarkGridContent(bookmarks: List<BookmarkItem>) {
+private fun BookmarkGridContent(
+    bookmarks: List<BookmarkItem>,
+    modifier: Modifier = Modifier
+) {
     val cardColors = CardDefaults.elevatedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     )
@@ -1169,7 +1201,7 @@ private fun BookmarkGridContent(bookmarks: List<BookmarkItem>) {
 
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalItemSpacing = 16.dp
@@ -1284,24 +1316,160 @@ private fun TagChipRow(tags: List<String>) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsContent(onLogout: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Settings",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
+private fun SettingsContent(
+    onLogout: () -> Unit,
+    onBack: () -> Unit
+) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val context = LocalContext.current
+    val appVersion = remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: "1.0"
+        } catch (e: Exception) {
+            "1.0"
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Text(
+                        text = "Settings",
+                        modifier = Modifier.padding(start = 10.dp),
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        modifier = Modifier.padding(start = 10.dp),
+                        onClick = onBack,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
             )
-            Button(
-                onClick = onLogout,
-                modifier = Modifier.padding(top = 16.dp)
+        }
+    ) { paddingValues ->
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Logout")
+                // Seção Conta
+                SettingsSectionCard(
+                    title = "Conta",
+                    icon = Icons.Default.Person
+                ) {
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onLogout),
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        headlineContent = {
+                            Text(
+                                text = "Logout",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
+
+                // Seção Sobre
+                SettingsSectionCard(
+                    title = "About",
+                    icon = Icons.Default.Info
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        ListItem(
+                            modifier = Modifier.fillMaxWidth(),
+                            headlineContent = { Text("Version") },
+                            supportingContent = { Text(appVersion) }
+                        )
+                        HorizontalDivider()
+                        ListItem(
+                            modifier = Modifier.fillMaxWidth(),
+                            headlineContent = { Text("Developer") },
+                            supportingContent = { Text("Luiz Renato (ruizlenato)") }
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSectionCard(
+    title: String,
+    icon: ImageVector,
+    content: @Composable () -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header da seção
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            
+            HorizontalDivider()
+            
+            // Conteúdo da seção
+            content()
         }
     }
 }
