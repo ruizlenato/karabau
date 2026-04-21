@@ -158,11 +158,18 @@ fun LoginScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Text(
-                        text = "Login",
-                        modifier = Modifier.padding(start = 10.dp),
-                        style = MaterialTheme.typography.headlineMedium
-                    )
+                    Column(modifier = Modifier.padding(start = 10.dp, top = 6.dp)) {
+                        Text(
+                            text = "Login",
+                            style = MaterialTheme.typography.headlineMedium,
+                            
+                        )
+                        Text(
+                            text = "Enter your credentials to access your bookmarks",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(
@@ -210,13 +217,7 @@ fun LoginScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text(
-                        text = "Enter your credentials to access your bookmarks",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     OutlinedTextField(
                         value = uiState.email,

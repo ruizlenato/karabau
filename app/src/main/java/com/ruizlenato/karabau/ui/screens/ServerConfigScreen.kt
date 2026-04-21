@@ -78,11 +78,18 @@ fun ServerConfigScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Text(
-                        text = "Add Server",
-                        modifier = Modifier.padding(start = 10.dp),
-                        style = MaterialTheme.typography.headlineMedium
-                    )
+                    Column(modifier = Modifier.padding(start = 10.dp, top = 6.dp)) {
+                        Text(
+                            text = "Add Server",
+                            style = MaterialTheme.typography.headlineMedium,
+                            
+                        )
+                        Text(
+                            text = "Enter the URL of your Karakeep server",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(
@@ -112,7 +119,7 @@ fun ServerConfigScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .imePadding()
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -121,13 +128,7 @@ fun ServerConfigScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Text(
-                        text = "Enter the URL of your Karakeep server",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     OutlinedTextField(
                         value = address,
