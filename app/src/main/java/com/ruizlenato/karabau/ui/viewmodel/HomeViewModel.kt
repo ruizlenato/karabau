@@ -65,9 +65,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val settings = settingsDataStore.settingsFlow.first()
-            val repository = KarabauRepository(settings)
+            KarabauRepository.configure(settings)
 
-            when (val userResult = repository.whoAmI()) {
+            when (val userResult = KarabauRepository.whoAmI()) {
                 is ApiResult.Success -> {
                     val profileImage = resolveProfileImageUrl(
                         serverAddress = settings.address,
@@ -91,7 +91,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 is ApiResult.NetworkError -> Unit
             }
 
-            when (val result = repository.getBookmarks(archived = false, limit = 20)) {
+            when (val result = KarabauRepository.getBookmarks(archived = false, limit = 20)) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
@@ -176,10 +176,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val settings = settingsDataStore.settingsFlow.first()
-            val repository = KarabauRepository(settings)
+            KarabauRepository.configure(settings)
 
             when (
-                val result = repository.getTags(
+                val result = KarabauRepository.getTags(
                     limit = 50,
                     sortBy = "usage",
                     page = 0
@@ -262,9 +262,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val settings = settingsDataStore.settingsFlow.first()
-            val repository = KarabauRepository(settings)
+            KarabauRepository.configure(settings)
 
-            when (val tagResult = repository.getTag(selectedTag.id)) {
+            when (val tagResult = KarabauRepository.getTag(selectedTag.id)) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(selectedTagDetails = tagResult.data)
@@ -276,7 +276,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             when (
-                val result = repository.getAllBookmarksByTag(
+                val result = KarabauRepository.getAllBookmarksByTag(
                     archived = null,
                     tagId = selectedTag.id,
                     limit = 20

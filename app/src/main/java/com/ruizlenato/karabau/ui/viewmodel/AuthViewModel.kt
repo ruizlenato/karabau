@@ -108,7 +108,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { it.copy(authState = AuthState.LOADING) }
 
             val settings = settingsDataStore.settingsFlow.first()
-            val repository = KarabauRepository(settings.copy(address = currentState.serverAddress))
+            val loginSettings = settings.copy(address = currentState.serverAddress)
+            KarabauRepository.configure(loginSettings)
 
             val result = when (currentState.loginType) {
                 LoginType.PASSWORD -> {
@@ -121,7 +122,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         return@launch
                     }
-                    repository.exchangeKey(currentState.email, currentState.password)
+                    KarabauRepository.exchangeKey(currentState.email, currentState.password)
                 }
 
                 LoginType.API_KEY -> {
@@ -134,7 +135,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         return@launch
                     }
-                    repository.validateKey(currentState.apiKey)
+                    KarabauRepository.validateKey(currentState.apiKey)
                 }
             }
 
@@ -148,12 +149,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             apiKeyId = data.id
                         )
                         settingsDataStore.updateSettings(newSettings)
+                        KarabauRepository.configure(newSettings)
                     } else {
                         val newSettings = settings.copy(
                             address = currentState.serverAddress,
                             apiKey = currentState.apiKey
                         )
                         settingsDataStore.updateSettings(newSettings)
+                        KarabauRepository.configure(newSettings)
                     }
                     _uiState.update {
                         it.copy(
@@ -196,8 +199,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val settings = settingsDataStore.settingsFlow.first()
             if (settings.apiKeyId != null) {
-                val repository = KarabauRepository(settings)
-                repository.revokeKey(settings.apiKeyId)
+                KarabauRepository.configure(settings)
+                KarabauRepository.revokeKey(settings.apiKeyId)
             }
             settingsDataStore.clearAuth()
             _uiState.update {
@@ -212,8 +215,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun checkHealth() {
         viewModelScope.launch {
             val settings = settingsDataStore.settingsFlow.first()
-            val repository = KarabauRepository(settings)
-            val result = repository.healthCheck()
+            KarabauRepository.configure(settings)
+            val result = KarabauRepository.healthCheck()
             when (result) {
                 is ApiResult.Success -> Log.d(TAG, "Health check passed")
                 is ApiResult.Error -> Log.e(TAG, "Health check failed: ${result.message}")
