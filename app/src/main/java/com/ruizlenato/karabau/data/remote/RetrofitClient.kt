@@ -14,10 +14,15 @@ class RetrofitClient {
     companion object {
         private const val TAG = "RetrofitClient"
         private const val TIMEOUT = 30L
+        private const val ENABLE_LOGGING = false
 
         fun create(baseUrl: String, customHeaders: Map<String, String> = emptyMap()): KarabauApiService {
             val loggingInterceptor = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level = if (ENABLE_LOGGING) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
             }
 
             val client = OkHttpClient.Builder()

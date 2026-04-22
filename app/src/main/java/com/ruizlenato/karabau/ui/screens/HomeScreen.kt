@@ -104,7 +104,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -1083,7 +1082,6 @@ private fun SearchResultsContent(
         Text(
             text = "Results",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
@@ -1115,7 +1113,7 @@ private fun BookmarkListItem(
         bookmark.imageUrl?.takeIf { it.isNotBlank() }?.let { imageUrl ->
             ImageRequest.Builder(context)
                 .data(imageUrl)
-                .crossfade(true)
+                .crossfade(0)
                 .build()
         }
     }
@@ -1229,7 +1227,7 @@ private fun KeepStyleCard(
         bookmark.imageUrl?.takeIf { it.isNotBlank() }?.let { imageUrl ->
             ImageRequest.Builder(context)
                 .data(imageUrl)
-                .crossfade(true)
+                .crossfade(0)
                 .build()
         }
     }
