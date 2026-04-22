@@ -26,14 +26,22 @@ sealed class ApiResult<out T> {
     data class NetworkError(val message: String) : ApiResult<Nothing>()
 }
 
-class KarabauRepository(
-    private val settings: Settings
-) {
-    private val apiService: KarabauApiService by lazy {
-        RetrofitClient.create(settings.address, settings.customHeaders)
+object KarabauRepository {
+    private var _settings: Settings? = null
+    private var _apiService: KarabauApiService? = null
+
+    fun configure(settings: Settings) {
+        _settings = settings
+        _apiService = RetrofitClient.create(settings.address, settings.customHeaders)
     }
 
+    private val apiService: KarabauApiService
+        get() = _apiService
+            ?: throw IllegalStateException("KarabauRepository not configured. Call configure() first.")
+
     suspend fun exchangeKey(email: String, password: String): ApiResult<ExchangeKeyResponse> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         return try {
             val randStr = UUID.randomUUID().toString().take(8)
             val request = ExchangeKeyRequest(
@@ -71,6 +79,8 @@ class KarabauRepository(
     }
 
     suspend fun validateKey(apiKey: String): ApiResult<ValidateKeyResponse> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         return try {
             val request = ValidateKeyRequest(apiKey = apiKey)
             val response = apiService.validateKey(TrpcInput(json = request))
@@ -102,6 +112,8 @@ class KarabauRepository(
     }
 
     suspend fun healthCheck(): ApiResult<Boolean> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         return try {
             val response = apiService.healthCheck()
             if (response.isSuccessful) {
@@ -122,6 +134,8 @@ class KarabauRepository(
         cursor: BookmarkCursor? = null,
         limit: Int = 20
     ): ApiResult<List<BookmarkItem>> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         if (!settings.isLoggedIn()) {
             return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
         }
@@ -185,8 +199,11 @@ class KarabauRepository(
     suspend fun getAllBookmarksByTag(
         tagId: String,
         archived: Boolean? = null,
-        limit: Int = 20
+        limit: Int = 20,
+        maxTotal: Int = 200
     ): ApiResult<List<BookmarkItem>> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         if (!settings.isLoggedIn()) {
             return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
         }
@@ -195,24 +212,26 @@ class KarabauRepository(
             val allItems = mutableListOf<BookmarkItem>()
             var cursor: BookmarkCursor? = null
 
-            do {
+            while (allItems.size < maxTotal) {
                 val pageResult = getBookmarksPage(
                     archived = archived,
                     tagId = tagId,
                     cursor = cursor,
-                    limit = limit
+                    limit = minOf(limit, maxTotal - allItems.size)
                 )
 
                 when (pageResult) {
                     is ApiResult.Success -> {
+                        if (pageResult.data.bookmarks.isEmpty()) break
                         allItems += pageResult.data.bookmarks
                         cursor = pageResult.data.nextCursor
+                        if (cursor == null) break
                     }
 
                     is ApiResult.Error -> return pageResult
                     is ApiResult.NetworkError -> return pageResult
                 }
-            } while (cursor != null)
+            }
 
             ApiResult.Success(allItems)
         } catch (e: IOException) {
@@ -223,6 +242,8 @@ class KarabauRepository(
     }
 
     suspend fun whoAmI(): ApiResult<WhoAmIResponse> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         if (!settings.isLoggedIn()) {
             return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
         }
@@ -266,6 +287,8 @@ class KarabauRepository(
         sortBy: String = if (nameContains.isNullOrBlank()) "usage" else "relevance",
         page: Int = 0
     ): ApiResult<List<TagItem>> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         if (!settings.isLoggedIn()) {
             return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
         }
@@ -313,6 +336,8 @@ class KarabauRepository(
     }
 
     suspend fun getTag(tagId: String): ApiResult<TagDetails> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         if (!settings.isLoggedIn()) {
             return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
         }
@@ -358,6 +383,8 @@ class KarabauRepository(
         cursor: BookmarkCursor?,
         limit: Int
     ): ApiResult<GetBookmarksResponse> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         val auth = "Bearer ${settings.apiKey}"
         val request = GetBookmarksRequest(
             archived = archived,
@@ -550,6 +577,8 @@ class KarabauRepository(
     }
 
     suspend fun revokeKey(apiKeyId: String): ApiResult<Unit> {
+        val settings = _settings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+
         if (!settings.isLoggedIn()) {
             return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
         }
