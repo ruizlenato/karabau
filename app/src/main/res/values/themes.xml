@@ -10,7 +10,7 @@
         name="Theme.Karabau.Splash"
         parent="Theme.SplashScreen"
     >
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="windowSplashScreenBackground">@color/splash_dynamic_background</item>
         <item name="postSplashScreenTheme">@style/Theme.Karabau</item>
     </style>
