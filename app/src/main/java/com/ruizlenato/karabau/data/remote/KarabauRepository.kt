@@ -17,8 +17,10 @@ import com.ruizlenato.karabau.data.model.isLoggedIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 import java.net.URI
 import java.util.UUID
@@ -58,10 +60,107 @@ class KarabauRepository {
     private fun requireSettings(): Settings =
         currentSettings ?: throw IllegalStateException("KarabauRepository not configured. Call configure() first.")
 
+    private fun requireLoggedIn(): Settings {
+        val settings = requireSettings()
+        check(settings.isLoggedIn()) { "Not logged in" }
+        return settings
+    }
+
+    // ──────────────────────────────────────────────
+    //  Generic API call wrappers (eliminate duplication)
+    // ──────────────────────────────────────────────
+
+    /**
+     * Wraps a suspend API call with unified error handling.
+     * Every public method delegates its try/catch to this.
+     */
+    private inline fun <T> safeApiCall(
+        defaultErrorCode: String = "FAILED",
+        defaultErrorMessage: String = "Request failed",
+        block: () -> ApiResult<T>
+    ): ApiResult<T> {
+        return try {
+            block()
+        } catch (e: HttpException) {
+            ApiResult.Error("HTTP_ERROR", e.message ?: "HTTP error")
+        } catch (e: IOException) {
+            ApiResult.NetworkError(e.message ?: "Network error")
+        } catch (e: Exception) {
+            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
+        }
+    }
+
+    /**
+     * Handles a Retrofit Response<ResponseBody> from a tRPC batch GET endpoint.
+     * Parses the raw body using the provided mapper, or returns a structured error.
+     */
+    private inline fun <T> handleBatchGetResponse(
+        response: Response<ResponseBody>,
+        errorContext: String,
+        mapper: (JSONObject) -> T?
+    ): ApiResult<T> {
+        if (response.isSuccessful) {
+            val rawBody = response.body()?.string().orEmpty()
+            val json = parseBatchJson(rawBody)
+                ?: return ApiResult.Error("UNKNOWN", "Empty response")
+            val result = mapper(json)
+                ?: return ApiResult.Error("UNKNOWN", "Empty response")
+            return ApiResult.Success(result)
+        } else {
+            val errorBody = response.errorBody()?.string().orEmpty()
+            return ApiResult.Error(
+                "FAILED",
+                errorBody.ifBlank { "Failed to $errorContext" }
+            )
+        }
+    }
+
+    /**
+     * Handles a Retrofit Response from a tRPC POST endpoint that returns
+     * a typed TrpcResponse<T> body (exchangeKey, validateKey, revokeKey).
+     */
+    private inline fun <T> handleTrpcPostResponse(
+        response: Response<TrpcResponse<T>>,
+        errorMapCode: (Int) -> String = { "UNKNOWN" }
+    ): ApiResult<T> {
+        if (response.isSuccessful) {
+            val data = response.body()?.result?.data?.json
+            return if (data != null) {
+                ApiResult.Success(data)
+            } else {
+                ApiResult.Error("UNKNOWN", "Empty response")
+            }
+        } else {
+            val errorBody = response.errorBody()?.string().orEmpty()
+            val errorCode = errorMapCode(response.code())
+            return ApiResult.Error(
+                errorCode,
+                errorBody.ifBlank { "Request failed: ${response.code()}" }
+            )
+        }
+    }
+
+    /**
+     * Builds the tRPC batch input JSON: {"0":{"json":{...block...}}}
+     */
+    private fun buildTrpcInput(block: JSONObject.() -> Unit): String {
+        return JSONObject().apply {
+            put("0", JSONObject().apply {
+                put("json", JSONObject().apply(block))
+            })
+        }.toString()
+    }
+
+    private fun Settings.authHeader(): String = "Bearer $apiKey"
+
+    // ──────────────────────────────────────────────
+    //  Public API
+    // ──────────────────────────────────────────────
+
     suspend fun exchangeKey(email: String, password: String): ApiResult<ExchangeKeyResponse> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
 
-        return try {
+        return safeApiCall {
             val randStr = UUID.randomUUID().toString().take(8)
             val request = ExchangeKeyRequest(
                 email = email.trim(),
@@ -69,81 +168,43 @@ class KarabauRepository {
                 keyName = "Mobile App: ($randStr)"
             )
             val response = apiService.exchangeKey(TrpcInput(json = request))
-
-            if (response.isSuccessful) {
-                val body = response.body()
-                val data = body?.result?.data?.json
-                if (data != null) {
-                    ApiResult.Success(data)
-                } else {
-                    ApiResult.Error("UNKNOWN", "Empty response")
-                }
-            } else {
-                val errorBody = response.errorBody()?.string().orEmpty()
-                val errorCode = when (response.code()) {
+            handleTrpcPostResponse(response) { code ->
+                when (code) {
                     401 -> "UNAUTHORIZED"
                     403 -> "FORBIDDEN"
                     429 -> "RATE_LIMIT"
                     else -> "UNKNOWN"
                 }
-                ApiResult.Error(errorCode, errorBody.ifBlank { "Request failed: ${response.code()}" })
             }
-        } catch (e: HttpException) {
-            ApiResult.Error("HTTP_ERROR", e.message ?: "HTTP error")
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
     suspend fun validateKey(apiKey: String): ApiResult<ValidateKeyResponse> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
 
-        return try {
+        return safeApiCall {
             val request = ValidateKeyRequest(apiKey = apiKey)
             val response = apiService.validateKey(TrpcInput(json = request))
-
-            if (response.isSuccessful) {
-                val body = response.body()
-                val data = body?.result?.data?.json
-                if (data != null) {
-                    ApiResult.Success(data)
-                } else {
-                    ApiResult.Error("UNKNOWN", "Empty response")
-                }
-            } else {
-                val errorBody = response.errorBody()?.string().orEmpty()
-                val errorCode = when (response.code()) {
+            handleTrpcPostResponse(response) { code ->
+                when (code) {
                     401 -> "UNAUTHORIZED"
                     429 -> "RATE_LIMIT"
                     else -> "UNKNOWN"
                 }
-                ApiResult.Error(errorCode, errorBody.ifBlank { "Request failed: ${response.code()}" })
             }
-        } catch (e: HttpException) {
-            ApiResult.Error("HTTP_ERROR", e.message ?: "HTTP error")
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
     suspend fun healthCheck(): ApiResult<Boolean> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
 
-        return try {
+        return safeApiCall {
             val response = apiService.healthCheck()
             if (response.isSuccessful) {
                 ApiResult.Success(true)
             } else {
                 ApiResult.Error("FAILED", "Health check failed")
             }
-        } catch (e: IOException) {
-            ApiResult.NetworkError("Cannot connect to server")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
@@ -154,31 +215,16 @@ class KarabauRepository {
         limit: Int = 20
     ): ApiResult<List<BookmarkItem>> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
 
-        if (!settings.isLoggedIn()) {
-            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
-        }
-
-        return try {
-            val auth = "Bearer ${settings.apiKey}"
-            val request = GetBookmarksRequest(
-                archived = archived,
-                includeContent = false,
-                useCursorV2 = true,
-                tagId = tagId,
-                cursor = cursor,
-                limit = limit
-            )
-
+        return safeApiCall {
             val inputJson = buildTrpcInput {
-                request.archived?.let { put("archived", it) }
-                put("includeContent", request.includeContent)
-                put("useCursorV2", request.useCursorV2)
-                put("limit", request.limit)
-                request.tagId?.takeIf { it.isNotBlank() }?.let {
-                    put("tagId", it)
-                }
-                request.cursor?.let {
+                archived?.let { put("archived", it) }
+                put("includeContent", false)
+                put("useCursorV2", true)
+                put("limit", limit)
+                tagId?.takeIf { it.isNotBlank() }?.let { put("tagId", it) }
+                cursor?.let {
                     put("cursor", JSONObject().apply {
                         put("createdAt", it.createdAt)
                         put("id", it.id)
@@ -187,27 +233,14 @@ class KarabauRepository {
             }
 
             val response = apiService.getBookmarks(
-                auth = auth,
+                auth = settings.authHeader(),
                 batch = "1",
                 input = inputJson
             )
 
-            if (response.isSuccessful) {
-                val rawBody = response.body()?.string().orEmpty()
-                val bookmarksPage = parseBookmarksPageFromBatchResponse(rawBody)
-                if (bookmarksPage != null) {
-                    ApiResult.Success(bookmarksPage.bookmarks)
-                } else {
-                    ApiResult.Error("UNKNOWN", "Empty response")
-                }
-            } else {
-                val errorBody = response.errorBody()?.string().orEmpty()
-                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load bookmarks" })
+            handleBatchGetResponse(response, "load bookmarks") { json ->
+                parseBookmarksPageFromBatchJson(json)?.bookmarks
             }
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
@@ -218,12 +251,9 @@ class KarabauRepository {
         maxTotal: Int = 200
     ): ApiResult<List<BookmarkItem>> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
 
-        if (!settings.isLoggedIn()) {
-            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
-        }
-
-        return try {
+        return safeApiCall {
             val allItems = mutableListOf<BookmarkItem>()
             var cursor: BookmarkCursor? = null
 
@@ -243,54 +273,36 @@ class KarabauRepository {
                         if (cursor == null) break
                     }
 
-                    is ApiResult.Error -> return pageResult
-                    is ApiResult.NetworkError -> return pageResult
+                    is ApiResult.Error -> return@safeApiCall pageResult
+                    is ApiResult.NetworkError -> return@safeApiCall pageResult
                 }
             }
 
             ApiResult.Success(allItems)
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
     suspend fun whoAmI(): ApiResult<WhoAmIResponse> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
 
-        if (!settings.isLoggedIn()) {
-            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
-        }
-
-        return try {
-            val auth = "Bearer ${settings.apiKey}"
-            val inputJson = buildTrpcInput {
-                // no params
-            }
+        return safeApiCall {
+            val inputJson = buildTrpcInput { }
 
             val response = apiService.whoAmI(
-                auth = auth,
+                auth = settings.authHeader(),
                 batch = "1",
                 input = inputJson
             )
 
-            if (response.isSuccessful) {
-                val rawBody = response.body()?.string().orEmpty()
-                val user = parseWhoAmIFromBatchResponse(rawBody)
-                if (user != null) {
-                    ApiResult.Success(user)
-                } else {
-                    ApiResult.Error("UNKNOWN", "Empty response")
-                }
-            } else {
-                val errorBody = response.errorBody()?.string().orEmpty()
-                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load profile" })
+            handleBatchGetResponse(response, "load profile") { json ->
+                WhoAmIResponse(
+                    id = json.optString("id"),
+                    name = json.optStringOrNull("name"),
+                    email = json.optStringOrNull("email"),
+                    image = json.optStringOrNull("image")
+                )
             }
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
@@ -301,86 +313,75 @@ class KarabauRepository {
         page: Int = 0
     ): ApiResult<List<TagItem>> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
 
-        if (!settings.isLoggedIn()) {
-            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
-        }
-
-        return try {
-            val auth = "Bearer ${settings.apiKey}"
+        return safeApiCall {
             val inputJson = buildTrpcInput {
                 put("limit", limit)
                 put("sortBy", sortBy)
-                put("cursor", JSONObject().apply {
-                    put("page", page)
-                })
-                nameContains?.takeIf { it.isNotBlank() }?.let {
-                    put("nameContains", it)
-                }
+                put("cursor", JSONObject().apply { put("page", page) })
+                nameContains?.takeIf { it.isNotBlank() }?.let { put("nameContains", it) }
             }
 
             val response = apiService.listTags(
-                auth = auth,
+                auth = settings.authHeader(),
                 batch = "1",
                 input = inputJson
             )
 
-            if (response.isSuccessful) {
-                val rawBody = response.body()?.string().orEmpty()
-                val tags = parseTagsListFromBatchResponse(rawBody)
-                if (tags != null) {
-                    ApiResult.Success(tags)
-                } else {
-                    ApiResult.Error("UNKNOWN", "Empty response")
-                }
-            } else {
-                val errorBody = response.errorBody()?.string().orEmpty()
-                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load tags" })
+            handleBatchGetResponse(response, "load tags") { json ->
+                parseTagsListFromBatchJson(json)
             }
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
 
     suspend fun getTag(tagId: String): ApiResult<TagDetails> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
 
-        if (!settings.isLoggedIn()) {
-            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
-        }
-
-        return try {
-            val auth = "Bearer ${settings.apiKey}"
+        return safeApiCall {
             val inputJson = buildTrpcInput {
                 put("tagId", tagId)
             }
 
             val response = apiService.getTag(
-                auth = auth,
+                auth = settings.authHeader(),
                 batch = "1",
                 input = inputJson
             )
 
-            if (response.isSuccessful) {
-                val rawBody = response.body()?.string().orEmpty()
-                val tag = parseTagDetailsFromBatchResponse(rawBody)
-                if (tag != null) {
-                    ApiResult.Success(tag)
-                } else {
-                    ApiResult.Error("UNKNOWN", "Empty response")
-                }
-            } else {
-                val errorBody = response.errorBody()?.string().orEmpty()
-                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load tag" })
+            handleBatchGetResponse(response, "load tag") { json ->
+                val id = json.optStringOrNull("id") ?: return@handleBatchGetResponse null
+                val name = json.optStringOrNull("name") ?: return@handleBatchGetResponse null
+                TagDetails(
+                    id = id,
+                    name = name,
+                    numBookmarks = json.optInt("numBookmarks", 0)
+                )
             }
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
         }
     }
+
+    suspend fun revokeKey(apiKeyId: String): ApiResult<Unit> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val auth = settings.authHeader()
+            val request = RevokeKeyRequest(id = apiKeyId)
+            val response = apiService.revokeKey(auth, TrpcInput(json = request))
+
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                ApiResult.Error("FAILED", "Failed to revoke key")
+            }
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    //  Private: paginated bookmarks (used by getAllBookmarksByTag)
+    // ──────────────────────────────────────────────
 
     private suspend fun getBookmarksPage(
         archived: Boolean?,
@@ -389,64 +390,39 @@ class KarabauRepository {
         limit: Int
     ): ApiResult<GetBookmarksResponse> {
         val settings = requireSettings()
-        val auth = "Bearer ${settings.apiKey}"
-        val request = GetBookmarksRequest(
-            archived = archived,
-            includeContent = false,
-            useCursorV2 = true,
-            tagId = tagId,
-            cursor = cursor,
-            limit = limit
-        )
 
-        val inputJson = buildTrpcInput {
-            request.archived?.let { put("archived", it) }
-            put("includeContent", request.includeContent)
-            put("useCursorV2", request.useCursorV2)
-            put("limit", request.limit)
-            request.tagId?.takeIf { it.isNotBlank() }?.let {
-                put("tagId", it)
+        return safeApiCall {
+            val inputJson = buildTrpcInput {
+                archived?.let { put("archived", it) }
+                put("includeContent", false)
+                put("useCursorV2", true)
+                put("limit", limit)
+                tagId?.takeIf { it.isNotBlank() }?.let { put("tagId", it) }
+                cursor?.let {
+                    put("cursor", JSONObject().apply {
+                        put("createdAt", it.createdAt)
+                        put("id", it.id)
+                    })
+                }
             }
-            request.cursor?.let {
-                put("cursor", JSONObject().apply {
-                    put("createdAt", it.createdAt)
-                    put("id", it.id)
-                })
+
+            val response = apiService.getBookmarks(
+                auth = settings.authHeader(),
+                batch = "1",
+                input = inputJson
+            )
+
+            handleBatchGetResponse(response, "load bookmarks") { json ->
+                parseBookmarksPageFromBatchJson(json)
             }
-        }
-
-        val response = apiService.getBookmarks(
-            auth = auth,
-            batch = "1",
-            input = inputJson
-        )
-
-        if (!response.isSuccessful) {
-            val errorBody = response.errorBody()?.string().orEmpty()
-            return ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to load bookmarks" })
-        }
-
-        val rawBody = response.body()?.string().orEmpty()
-        val bookmarksPage = parseBookmarksPageFromBatchResponse(rawBody)
-        return if (bookmarksPage != null) {
-            ApiResult.Success(bookmarksPage)
-        } else {
-            ApiResult.Error("UNKNOWN", "Empty response")
         }
     }
 
-    private fun buildTrpcInput(block: JSONObject.() -> Unit): String {
-        return JSONObject().apply {
-            put("0", JSONObject().apply {
-                put("json", JSONObject().apply(block))
-            })
-        }.toString()
-    }
+    // ──────────────────────────────────────────────
+    //  Private: JSON parsing
+    // ──────────────────────────────────────────────
 
-    private fun parseBookmarksPageFromBatchResponse(raw: String): GetBookmarksResponse? {
-        if (raw.isBlank()) return null
-
-        val json = parseBatchJson(raw) ?: return null
+    private fun parseBookmarksPageFromBatchJson(json: JSONObject): GetBookmarksResponse? {
         val bookmarksArray = json.optJSONArray("bookmarks")
             ?: return GetBookmarksResponse(bookmarks = emptyList(), nextCursor = null)
 
@@ -478,15 +454,10 @@ class KarabauRepository {
             )
         }
 
-        val nextCursorObject = json.optJSONObject("nextCursor")
-        val nextCursor = nextCursorObject?.let {
-            val id = it.optStringOrNull("id")
-            val createdAt = it.optStringOrNull("createdAt")
-            if (id != null && createdAt != null) {
-                BookmarkCursor(createdAt = createdAt, id = id)
-            } else {
-                null
-            }
+        val nextCursor = json.optJSONObject("nextCursor")?.let {
+            val id = it.optStringOrNull("id") ?: return@let null
+            val createdAt = it.optStringOrNull("createdAt") ?: return@let null
+            BookmarkCursor(createdAt = createdAt, id = id)
         }
 
         return GetBookmarksResponse(
@@ -495,23 +466,7 @@ class KarabauRepository {
         )
     }
 
-    private fun parseWhoAmIFromBatchResponse(raw: String): WhoAmIResponse? {
-        if (raw.isBlank()) return null
-
-        val json = parseBatchJson(raw) ?: return null
-
-        return WhoAmIResponse(
-            id = json.optString("id"),
-            name = json.optStringOrNull("name"),
-            email = json.optStringOrNull("email"),
-            image = json.optStringOrNull("image")
-        )
-    }
-
-    private fun parseTagsListFromBatchResponse(raw: String): List<TagItem>? {
-        if (raw.isBlank()) return null
-
-        val json = parseBatchJson(raw) ?: return null
+    private fun parseTagsListFromBatchJson(json: JSONObject): List<TagItem>? {
         val tagsArray = json.optJSONArray("tags") ?: return emptyList()
 
         val tags = mutableListOf<TagItem>()
@@ -528,21 +483,6 @@ class KarabauRepository {
         }
 
         return tags
-    }
-
-    private fun parseTagDetailsFromBatchResponse(raw: String): TagDetails? {
-        if (raw.isBlank()) return null
-
-        val json = parseBatchJson(raw) ?: return null
-        val id = json.optStringOrNull("id") ?: return null
-        val name = json.optStringOrNull("name") ?: return null
-        val numBookmarks = json.optInt("numBookmarks", 0)
-
-        return TagDetails(
-            id = id,
-            name = name,
-            numBookmarks = numBookmarks
-        )
     }
 
     private fun parseBatchJson(raw: String): JSONObject? {
@@ -582,27 +522,5 @@ class KarabauRepository {
             }
         }
         return tags
-    }
-
-    suspend fun revokeKey(apiKeyId: String): ApiResult<Unit> {
-        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
-
-        if (!settings.isLoggedIn()) {
-            return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
-        }
-
-        return try {
-            val auth = "Bearer ${settings.apiKey}"
-            val request = RevokeKeyRequest(id = apiKeyId)
-            val response = apiService.revokeKey(auth, TrpcInput(json = request))
-
-            if (response.isSuccessful) {
-                ApiResult.Success(Unit)
-            } else {
-                ApiResult.Error("FAILED", "Failed to revoke key")
-            }
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
-        }
     }
 }
