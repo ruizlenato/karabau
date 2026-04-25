@@ -3,6 +3,7 @@ package com.ruizlenato.karabau.data.remote
 import com.ruizlenato.karabau.data.model.ExchangeKeyRequest
 import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
 import com.ruizlenato.karabau.data.model.HealthCheckResponse
+import com.ruizlenato.karabau.data.model.CreateBookmarkRequest
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
@@ -31,6 +32,12 @@ interface KarabauApiService {
         @Header("Authorization") auth: String,
         @Body request: TrpcInput<RevokeKeyRequest>
     ): Response<TrpcResponse<Unit>>
+
+    @POST("api/trpc/bookmarks.createBookmark")
+    suspend fun createBookmark(
+        @Header("Authorization") auth: String,
+        @Body request: TrpcInput<CreateBookmarkRequest>
+    ): Response<ResponseBody>
 
     @GET("api/trpc/bookmarks.getBookmarks")
     suspend fun getBookmarks(

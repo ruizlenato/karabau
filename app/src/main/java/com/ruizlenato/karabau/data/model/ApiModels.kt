@@ -33,6 +33,15 @@ data class RevokeKeyRequest(
 )
 
 @Serializable
+data class CreateBookmarkRequest(
+    val type: String = "link",
+    val url: String,
+    val title: String? = null,
+    val note: String? = null,
+    val source: String = "mobile"
+)
+
+@Serializable
 data class ApiError(
     val code: String? = null,
     val message: String? = null

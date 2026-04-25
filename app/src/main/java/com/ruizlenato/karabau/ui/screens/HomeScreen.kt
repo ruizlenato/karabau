@@ -3,6 +3,8 @@ package com.ruizlenato.karabau.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -115,10 +117,14 @@ private val homeDestinations = listOf(
     HomeDestination(label = "Tags", icon = Icons.Default.LocalOffer)
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun HomeScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onAddBookmark: () -> Unit = {},
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: androidx.compose.animation.AnimatedContentScope,
+    onBookmarkCreated: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val homeViewModel: HomeViewModel = viewModel()
@@ -212,11 +218,20 @@ fun HomeScreen(
                         )
                     }
                 },
-                floatingActionButton = {
-                    if (activeTab == 0 && !homeUiState.isSearchActive) {
+            floatingActionButton = {
+                if (activeTab == 0 && !homeUiState.isSearchActive) {
+                    with(sharedTransitionScope) {
                         FloatingActionButton(
-                            onClick = { },
-                            modifier = Modifier.size(70.dp),
+                            onClick = onAddBookmark,
+                            modifier = Modifier
+                                .size(70.dp)
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "create_bookmark_container"),
+                                    animatedVisibilityScope = animatedContentScope,
+                                    clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp)),
+                                    enter = fadeIn(tween(200, delayMillis = 300, easing = FastOutSlowInEasing)),
+                                    exit = fadeOut(tween(150, easing = FastOutSlowInEasing))
+                                ),
                             shape = RoundedCornerShape(16.dp),
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -228,7 +243,8 @@ fun HomeScreen(
                             )
                         }
                     }
-                },
+                }
+            },
                 floatingActionButtonPosition = FabPosition.End,
                 bottomBar = {
                     if (!homeUiState.isSearchActive) {

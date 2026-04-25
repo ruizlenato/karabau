@@ -30,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.isLoggedIn
+import com.ruizlenato.karabau.ui.screens.CreateBookmarkScreen
 import com.ruizlenato.karabau.ui.screens.HomeScreen
 import com.ruizlenato.karabau.ui.screens.LoginScreen
 import com.ruizlenato.karabau.ui.screens.ServerConfigScreen
@@ -86,6 +87,7 @@ sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object ServerConfig : Screen("server_config")
     data object Home : Screen("home")
+    data object CreateBookmark : Screen("create_bookmark")
 }
 
 class MainActivity : ComponentActivity() {
@@ -108,6 +110,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
 fun KarabauApp(
     onReady: () -> Unit
@@ -134,108 +137,147 @@ fun KarabauApp(
             modifier = Modifier.fillMaxSize(),
             color = androidx.compose.material3.MaterialTheme.colorScheme.background
         ) {
-            NavHost(
-                navController = navController,
-                startDestination = if (isLoggedIn) Screen.Home.route else Screen.Welcome.route
-            ) {
-            composable(
-                route = Screen.Welcome.route,
-                enterTransition = { backwardEnter() },
-                exitTransition = { forwardExit() },
-                popEnterTransition = { backwardEnter() },
-                popExitTransition = { backwardExit() }
-            ) {
-                WelcomeScreen(
-                    onContinue = {
-                        navController.navigate(Screen.ServerConfig.route) {
-                            popUpTo(Screen.Welcome.route) { inclusive = false }
-                        }
+            androidx.compose.animation.SharedTransitionLayout {
+                NavHost(
+                    navController = navController,
+                    startDestination = if (isLoggedIn) Screen.Home.route else Screen.Welcome.route
+                ) {
+                    composable(
+                        route = Screen.Welcome.route,
+                        enterTransition = { backwardEnter() },
+                        exitTransition = { forwardExit() },
+                        popEnterTransition = { backwardEnter() },
+                        popExitTransition = { backwardExit() }
+                    ) {
+                        WelcomeScreen(
+                            onContinue = {
+                                navController.navigate(Screen.ServerConfig.route) {
+                                    popUpTo(Screen.Welcome.route) { inclusive = false }
+                                }
+                            }
+                        )
                     }
-                )
-            }
 
-            composable(
-                route = Screen.ServerConfig.route,
-                enterTransition = { forwardEnter() },
-                exitTransition = { forwardExit() },
-                popEnterTransition = { backwardEnter() },
-                popExitTransition = { backwardExit() }
-            ) {
-                val authViewModel: AuthViewModel = viewModel()
-                val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
+                    composable(
+                        route = Screen.ServerConfig.route,
+                        enterTransition = { forwardEnter() },
+                        exitTransition = { forwardExit() },
+                        popEnterTransition = { backwardEnter() },
+                        popExitTransition = { backwardExit() }
+                    ) {
+                        val authViewModel: AuthViewModel = viewModel()
+                        val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
 
-                ServerConfigScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onAddressChange = { address ->
-                        authViewModel.onServerAddressChange(address)
-                    },
-                    onContinue = { address ->
-                        coroutineScope.launch {
-                            authViewModel.onServerAddressChange(address)
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(Screen.ServerConfig.route) { inclusive = false }
+                        ServerConfigScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onAddressChange = { address ->
+                                authViewModel.onServerAddressChange(address)
+                            },
+                            onContinue = { address ->
+                                coroutineScope.launch {
+                                    authViewModel.onServerAddressChange(address)
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.ServerConfig.route) { inclusive = false }
+                                    }
+                                }
+                            },
+                            currentAddress = uiState.serverAddress
+                        )
+                    }
+
+                    composable(
+                        route = Screen.Login.route,
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(tween(300))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { -it },
+                                animationSpec = tween(300)
+                            ) + fadeOut(tween(300))
+                        },
+                        popEnterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { -it / 3 },
+                                animationSpec = tween(300)
+                            ) + fadeIn(tween(300))
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeOut(tween(300))
+                        }
+                    ) {
+                        LoginScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onLoginSuccess = {
+                                isLoggedIn = true
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(Screen.Welcome.route) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Screen.Home.route,
+                        enterTransition = { fadeIn(tween(400)) },
+                        exitTransition = { fadeOut(tween(300)) }
+                    ) {
+                        val homeLifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+                        HomeScreen(
+                            onLogout = {
+                                coroutineScope.launch {
+                                    settingsDataStore.clearAuth()
+                                    isLoggedIn = false
+                                    navController.navigate(Screen.Welcome.route) {
+                                        popUpTo(Screen.Home.route) { inclusive = true }
+                                    }
+                                }
+                            },
+                            onAddBookmark = {
+                                navController.navigate(Screen.CreateBookmark.route)
+                            },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedContentScope = this@composable,
+                            onBookmarkCreated = {
+                            }
+                        )
+
+                        androidx.compose.runtime.DisposableEffect(navController.currentBackStackEntry) {
+                            val entry = navController.currentBackStackEntry ?: return@DisposableEffect onDispose { }
+                            val savedStateHandle = entry.savedStateHandle
+                            onDispose {
+                                val created = savedStateHandle.get<Boolean>("bookmark_created") ?: false
+                                if (created) {
+                                    savedStateHandle.remove<Boolean>("bookmark_created")
+                                }
                             }
                         }
-                    },
-                    currentAddress = uiState.serverAddress
-                )
-            }
+                    }
 
-            composable(
-                route = Screen.Login.route,
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(300)
-                    ) + fadeIn(tween(300))
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it },
-                        animationSpec = tween(300)
-                    ) + fadeOut(tween(300))
-                },
-                popEnterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { -it / 3 },
-                        animationSpec = tween(300)
-                    ) + fadeIn(tween(300))
-                },
-                popExitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(300)
-                    ) + fadeOut(tween(300))
+                    composable(
+                        route = Screen.CreateBookmark.route
+                    ) {
+                        CreateBookmarkScreen(
+                            onBack = { navController.popBackStack() },
+                            onSaved = {
+                                navController.previousBackStackEntry?.savedStateHandle?.set(
+                                    "bookmark_created",
+                                    true
+                                )
+                                navController.popBackStack()
+                            },
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            animatedContentScope = this@composable
+                        )
+                    }
                 }
-            ) {
-                LoginScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onLoginSuccess = {
-                        isLoggedIn = true
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Welcome.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
-
-            composable(
-                route = Screen.Home.route,
-                enterTransition = { fadeIn(tween(400)) },
-                exitTransition = { fadeOut(tween(300)) }
-            ) {
-                HomeScreen(
-                    onLogout = {
-                        coroutineScope.launch {
-                            settingsDataStore.clearAuth()
-                            isLoggedIn = false
-                            navController.navigate(Screen.Welcome.route) {
-                                popUpTo(Screen.Home.route) { inclusive = true }
-                            }
-                        }
-                    }
-                )
-            }
             }
         }
     }
