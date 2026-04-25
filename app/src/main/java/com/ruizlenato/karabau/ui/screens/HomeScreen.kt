@@ -86,6 +86,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -131,8 +133,11 @@ fun HomeScreen(
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        homeViewModel.loadSavedItems()
-        homeViewModel.loadTags()
+        // Run both loads in parallel since they are independent
+        coroutineScope {
+            launch { homeViewModel.loadSavedItems() }
+            launch { homeViewModel.loadTags() }
+        }
     }
 
     LaunchedEffect(selectedTab) {

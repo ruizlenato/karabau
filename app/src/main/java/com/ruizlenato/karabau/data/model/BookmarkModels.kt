@@ -1,6 +1,6 @@
 package com.ruizlenato.karabau.data.model
 
-import com.google.gson.JsonObject
+import org.json.JSONObject
 
 data class GetBookmarksRequest(
     val archived: Boolean? = false,
@@ -31,5 +31,5 @@ data class BookmarkItem(
     val archived: Boolean = false,
     val favourited: Boolean = false,
     val createdAt: String,
-    val content: JsonObject? = null
+    val content: JSONObject? = null
 )

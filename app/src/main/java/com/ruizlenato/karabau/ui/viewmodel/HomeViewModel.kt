@@ -10,6 +10,8 @@ import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,7 +70,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val settings = settingsDataStore.settingsFlow.first()
             repository.configure(settings)
 
-            when (val userResult = repository.whoAmI()) {
+            // Run whoAmI() and getBookmarks() in parallel since they are independent
+            val (userResult, bookmarksResult) = coroutineScope {
+                val userDeferred = async { repository.whoAmI() }
+                val bookmarksDeferred = async { repository.getBookmarks(archived = false, limit = 20) }
+                userDeferred.await() to bookmarksDeferred.await()
+            }
+
+            when (userResult) {
                 is ApiResult.Success -> {
                     val profileImage = resolveProfileImageUrl(
                         serverAddress = settings.address,
@@ -92,15 +101,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 is ApiResult.NetworkError -> Unit
             }
 
-            when (val result = repository.getBookmarks(archived = false, limit = 20)) {
+            when (bookmarksResult) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            bookmarks = result.data,
+                            bookmarks = bookmarksResult.data,
                             displayedBookmarks = computeDisplayedBookmarks(
-                                bookmarks = result.data,
+                                bookmarks = bookmarksResult.data,
                                 query = it.searchQuery,
                                 isSearchActive = it.isSearchActive
                             ),
@@ -114,7 +123,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else result.message
+                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
                         )
                     }
                 }
@@ -124,7 +133,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else result.message
+                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
                         )
                     }
                 }

@@ -468,20 +468,18 @@ class KarabauRepository {
                 ?: domainFromUrl(linkUrl)
             val tags = parseTags(obj.optJSONArray("tags"))
 
-            items += BookmarkItem(
-                id = obj.optString("id"),
-                title = if (obj.isNull("title")) null else obj.optString("title"),
-                tags = tags,
-                imageUrl = imageUrl,
-                subtitle = subtitle,
-                linkUrl = linkUrl,
-                archived = obj.optBoolean("archived", false),
-                favourited = obj.optBoolean("favourited", false),
-                createdAt = obj.optString("createdAt", ""),
-                content = content?.let { contentObj ->
-                    com.google.gson.JsonParser.parseString(contentObj.toString()).asJsonObject
-                }
-            )
+        items += BookmarkItem(
+            id = obj.optString("id"),
+            title = if (obj.isNull("title")) null else obj.optString("title"),
+            tags = tags,
+            imageUrl = imageUrl,
+            subtitle = subtitle,
+            linkUrl = linkUrl,
+            archived = obj.optBoolean("archived", false),
+            favourited = obj.optBoolean("favourited", false),
+            createdAt = obj.optString("createdAt", ""),
+            content = content
+        )
         }
 
         val nextCursor = json.optJSONObject("nextCursor")?.let {
