@@ -10,8 +10,10 @@ import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +48,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsDataStore = SettingsDataStore(application)
     private val repository = KarabauRepository()
 
+    private var cachedProfileHeadersKey: Triple<String, String?, String>? = null
+    private var cachedProfileHeadersMap: Map<String, String> = emptyMap()
+
+    private var searchDebounceJob: Job? = null
+
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
@@ -70,7 +77,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val settings = settingsDataStore.settingsFlow.first()
             repository.configure(settings)
 
-            // Run whoAmI() and getBookmarks() in parallel since they are independent
             val (userResult, bookmarksResult) = coroutineScope {
                 val userDeferred = async { repository.whoAmI() }
                 val bookmarksDeferred = async { repository.getBookmarks(archived = false, limit = 20) }
@@ -97,8 +103,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                is ApiResult.Error -> Unit
-                is ApiResult.NetworkError -> Unit
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            profileName = null,
+                            profileImage = null,
+                            profileImageHeaders = emptyMap()
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            profileName = null,
+                            profileImage = null,
+                            profileImageHeaders = emptyMap()
+                        )
+                    }
+                }
             }
 
             when (bookmarksResult) {
@@ -143,14 +166,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onSearchQueryChange(query: String) {
         _uiState.update { state ->
-            state.copy(
-                searchQuery = query,
-                displayedBookmarks = computeDisplayedBookmarks(
-                    bookmarks = state.bookmarks,
-                    query = query,
-                    isSearchActive = state.isSearchActive
+            state.copy(searchQuery = query)
+        }
+        searchDebounceJob?.cancel()
+        searchDebounceJob = viewModelScope.launch {
+            delay(300)
+            _uiState.update { state ->
+                state.copy(
+                    displayedBookmarks = computeDisplayedBookmarks(
+                        bookmarks = state.bookmarks,
+                        query = query,
+                        isSearchActive = state.isSearchActive
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -274,29 +303,50 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val settings = settingsDataStore.settingsFlow.first()
             repository.configure(settings)
 
-            when (val tagResult = repository.getTag(selectedTag.id)) {
+            val (tagResult, bookmarksResult) = coroutineScope {
+                val tagDeferred = async { repository.getTag(selectedTag.id) }
+                val bookmarksDeferred = async {
+                    repository.getAllBookmarksByTag(
+                        archived = null,
+                        tagId = selectedTag.id,
+                        limit = 20
+                    )
+                }
+                tagDeferred.await() to bookmarksDeferred.await()
+            }
+
+            when (tagResult) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(selectedTagDetails = tagResult.data)
                     }
                 }
 
-                is ApiResult.Error -> Unit
-                is ApiResult.NetworkError -> Unit
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagBookmarksLoading = false,
+                            tagBookmarksErrorMessage = tagResult.message
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isTagBookmarksLoading = false,
+                            tagBookmarksErrorMessage = tagResult.message
+                        )
+                    }
+                }
             }
 
-            when (
-                val result = repository.getAllBookmarksByTag(
-                    archived = null,
-                    tagId = selectedTag.id,
-                    limit = 20
-                )
-            ) {
+            when (bookmarksResult) {
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
                             isTagBookmarksLoading = false,
-                            tagBookmarks = result.data,
+                            tagBookmarks = bookmarksResult.data,
                             tagBookmarksErrorMessage = null
                         )
                     }
@@ -306,7 +356,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isTagBookmarksLoading = false,
-                            tagBookmarksErrorMessage = result.message
+                            tagBookmarksErrorMessage = bookmarksResult.message
                         )
                     }
                 }
@@ -315,59 +365,64 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isTagBookmarksLoading = false,
-                            tagBookmarksErrorMessage = result.message
+                            tagBookmarksErrorMessage = bookmarksResult.message
                         )
                     }
                 }
             }
         }
     }
-}
 
-private fun computeDisplayedBookmarks(
-    bookmarks: List<BookmarkItem>,
-    query: String,
-    isSearchActive: Boolean
-): List<BookmarkItem> {
-    return if (isSearchActive || query.isNotBlank()) {
-        filterBookmarks(bookmarks, query)
-    } else {
-        bookmarks
+    private fun computeDisplayedBookmarks(
+        bookmarks: List<BookmarkItem>,
+        query: String,
+        isSearchActive: Boolean
+    ): List<BookmarkItem> {
+        return if (isSearchActive || query.isNotBlank()) {
+            filterBookmarks(bookmarks, query)
+        } else {
+            bookmarks
+        }
     }
-}
 
-private fun resolveProfileImageUrl(serverAddress: String, image: String?): String? {
-    if (image.isNullOrBlank()) return null
-    if (isRemoteImage(image)) return image
-    val normalizedBase = serverAddress.trimEnd('/')
-    return "$normalizedBase/api/assets/$image"
-}
-
-private fun buildProfileImageHeaders(settings: Settings, image: String?): Map<String, String> {
-    if (isRemoteImage(image)) return emptyMap()
-
-    val headers = settings.customHeaders.toMutableMap()
-    settings.apiKey?.takeIf { it.isNotBlank() }?.let { apiKey ->
-        headers["Authorization"] = "Bearer $apiKey"
+    private fun resolveProfileImageUrl(serverAddress: String, image: String?): String? {
+        if (image.isNullOrBlank()) return null
+        if (isRemoteImage(image)) return image
+        val normalizedBase = serverAddress.trimEnd('/')
+        return "$normalizedBase/api/assets/$image"
     }
-    return headers
-}
 
-private fun isRemoteImage(image: String?): Boolean {
-    if (image.isNullOrBlank()) return true
-    return image.startsWith("http://") || image.startsWith("https://")
-}
+    private fun buildProfileImageHeaders(settings: Settings, image: String?): Map<String, String> {
+        if (isRemoteImage(image)) return emptyMap()
 
-private fun filterBookmarks(bookmarks: List<BookmarkItem>, query: String): List<BookmarkItem> {
-    val normalized = query.trim().lowercase()
-    if (normalized.isBlank()) return bookmarks
+        val cacheKey = Triple(settings.address, settings.apiKey, image ?: "")
+        if (cachedProfileHeadersKey == cacheKey) return cachedProfileHeadersMap
 
-    return bookmarks.filter { bookmark ->
-        val title = bookmark.title.orEmpty()
-        val subtitle = bookmark.subtitle.orEmpty()
-        val link = bookmark.linkUrl.orEmpty()
-        title.contains(normalized, ignoreCase = true) ||
-            subtitle.contains(normalized, ignoreCase = true) ||
-            link.contains(normalized, ignoreCase = true)
+        val headers = settings.customHeaders.toMutableMap()
+        settings.apiKey?.takeIf { it.isNotBlank() }?.let { apiKey ->
+            headers["Authorization"] = "Bearer $apiKey"
+        }
+        cachedProfileHeadersKey = cacheKey
+        cachedProfileHeadersMap = headers
+        return headers
+    }
+
+    private fun isRemoteImage(image: String?): Boolean {
+        if (image.isNullOrBlank()) return true
+        return image.startsWith("http://") || image.startsWith("https://")
+    }
+
+    private fun filterBookmarks(bookmarks: List<BookmarkItem>, query: String): List<BookmarkItem> {
+        val normalized = query.trim().lowercase()
+        if (normalized.isBlank()) return bookmarks
+
+        return bookmarks.filter { bookmark ->
+            val title = bookmark.title.orEmpty()
+            val subtitle = bookmark.subtitle.orEmpty()
+            val link = bookmark.linkUrl.orEmpty()
+            title.contains(normalized, ignoreCase = true) ||
+                    subtitle.contains(normalized, ignoreCase = true) ||
+                    link.contains(normalized, ignoreCase = true)
+        }
     }
 }

@@ -133,7 +133,6 @@ fun HomeScreen(
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        // Run both loads in parallel since they are independent
         coroutineScope {
             launch { homeViewModel.loadSavedItems() }
             launch { homeViewModel.loadTags() }
@@ -223,33 +222,33 @@ fun HomeScreen(
                         )
                     }
                 },
-            floatingActionButton = {
-                if (activeTab == 0 && !homeUiState.isSearchActive) {
-                    with(sharedTransitionScope) {
-                        FloatingActionButton(
-                            onClick = onAddBookmark,
-                            modifier = Modifier
-                                .size(70.dp)
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = "create_bookmark_container"),
-                                    animatedVisibilityScope = animatedContentScope,
-                                    clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp)),
-                                    enter = fadeIn(tween(200, delayMillis = 300, easing = FastOutSlowInEasing)),
-                                    exit = fadeOut(tween(150, easing = FastOutSlowInEasing))
-                                ),
-                            shape = RoundedCornerShape(16.dp),
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Add bookmark",
-                                modifier = Modifier.size(28.dp)
-                            )
+                floatingActionButton = {
+                    if (activeTab == 0 && !homeUiState.isSearchActive) {
+                        with(sharedTransitionScope) {
+                            FloatingActionButton(
+                                onClick = onAddBookmark,
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .sharedBounds(
+                                        sharedContentState = rememberSharedContentState(key = "create_bookmark_container"),
+                                        animatedVisibilityScope = animatedContentScope,
+                                        clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp)),
+                                        enter = fadeIn(tween(200, delayMillis = 300, easing = FastOutSlowInEasing)),
+                                        exit = fadeOut(tween(150, easing = FastOutSlowInEasing))
+                                    ),
+                                shape = RoundedCornerShape(16.dp),
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Add bookmark",
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
                     }
-                }
-            },
+                },
                 floatingActionButtonPosition = FabPosition.End,
                 bottomBar = {
                     if (!homeUiState.isSearchActive) {
@@ -360,16 +359,16 @@ private fun HomeTopBar(
             targetState = isSearchActive,
             transitionSpec = {
                 (fadeIn(animationSpec = tween(200)) +
-                 slideInVertically(
-                      initialOffsetY = { -it / 2 },
-                      animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-                 ))
+                        slideInVertically(
+                            initialOffsetY = { -it / 2 },
+                            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                        ))
                     .togetherWith(
                         fadeOut(animationSpec = tween(150)) +
-                        slideOutVertically(
-                            targetOffsetY = { -it / 2 },
-                            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
-                        )
+                                slideOutVertically(
+                                    targetOffsetY = { -it / 2 },
+                                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
+                                )
                     )
             },
             label = "searchBar"
@@ -463,9 +462,9 @@ private fun ActiveSearchBar(
             AnimatedVisibility(
                 visible = query.isNotEmpty(),
                 enter = scaleIn(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)) +
-                    fadeIn(animationSpec = tween(durationMillis = 150)),
+                        fadeIn(animationSpec = tween(durationMillis = 150)),
                 exit = scaleOut(animationSpec = tween(durationMillis = 150, easing = FastOutLinearInEasing)) +
-                    fadeOut(animationSpec = tween(durationMillis = 100))
+                        fadeOut(animationSpec = tween(durationMillis = 100))
             ) {
                 IconButton(
                     onClick = onClearQuery,
@@ -985,7 +984,7 @@ private fun HomeContent(
                     targetState = isSearchActive,
                     transitionSpec = {
                         fadeIn(animationSpec = tween(200)) togetherWith
-                        fadeOut(animationSpec = tween(150))
+                                fadeOut(animationSpec = tween(150))
                     },
                     label = "content"
                 ) { active ->
@@ -1095,19 +1094,19 @@ private fun SearchResultsContent(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(bookmarks, key = { it.id }) { bookmark ->
-            BookmarkListItem(
-                bookmark = bookmark,
-                cardColors = cardColors,
-                cardElevation = cardElevation
-            )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(bookmarks, key = { it.id }) { bookmark ->
+                BookmarkListItem(
+                    bookmark = bookmark,
+                    cardColors = cardColors,
+                    cardElevation = cardElevation
+                )
+            }
         }
-    }
     }
 }
 

@@ -6,7 +6,6 @@ import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.BookmarkCursor
 import com.ruizlenato.karabau.data.model.CreateBookmarkRequest
 import com.ruizlenato.karabau.data.model.GetBookmarksResponse
-import com.ruizlenato.karabau.data.model.GetBookmarksRequest
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagDetails
@@ -67,14 +66,6 @@ class KarabauRepository {
         return settings
     }
 
-    // ──────────────────────────────────────────────
-    //  Generic API call wrappers (eliminate duplication)
-    // ──────────────────────────────────────────────
-
-    /**
-     * Wraps a suspend API call with unified error handling.
-     * Every public method delegates its try/catch to this.
-     */
     private inline fun <T> safeApiCall(
         defaultErrorCode: String = "FAILED",
         defaultErrorMessage: String = "Request failed",
@@ -91,10 +82,6 @@ class KarabauRepository {
         }
     }
 
-    /**
-     * Handles a Retrofit Response<ResponseBody> from a tRPC batch GET endpoint.
-     * Parses the raw body using the provided mapper, or returns a structured error.
-     */
     private inline fun <T> handleBatchGetResponse(
         response: Response<ResponseBody>,
         errorContext: String,
@@ -116,10 +103,7 @@ class KarabauRepository {
         }
     }
 
-    /**
-     * Handles a Retrofit Response from a tRPC POST endpoint that returns
-     * a typed TrpcResponse<T> body (exchangeKey, validateKey, revokeKey).
-     */
+
     private inline fun <T> handleTrpcPostResponse(
         response: Response<TrpcResponse<T>>,
         errorMapCode: (Int) -> String = { "UNKNOWN" }
@@ -141,9 +125,6 @@ class KarabauRepository {
         }
     }
 
-    /**
-     * Builds the tRPC batch input JSON: {"0":{"json":{...block...}}}
-     */
     private fun buildTrpcInput(block: JSONObject.() -> Unit): String {
         return JSONObject().apply {
             put("0", JSONObject().apply {
@@ -154,9 +135,6 @@ class KarabauRepository {
 
     private fun Settings.authHeader(): String = "Bearer $apiKey"
 
-    // ──────────────────────────────────────────────
-    //  Public API
-    // ──────────────────────────────────────────────
 
     suspend fun exchangeKey(email: String, password: String): ApiResult<ExchangeKeyResponse> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
@@ -409,10 +387,6 @@ class KarabauRepository {
         }
     }
 
-    // ──────────────────────────────────────────────
-    //  Private: paginated bookmarks (used by getAllBookmarksByTag)
-    // ──────────────────────────────────────────────
-
     private suspend fun getBookmarksPage(
         archived: Boolean?,
         tagId: String?,
@@ -448,10 +422,6 @@ class KarabauRepository {
         }
     }
 
-    // ──────────────────────────────────────────────
-    //  Private: JSON parsing
-    // ──────────────────────────────────────────────
-
     private fun parseBookmarksPageFromBatchJson(json: JSONObject): GetBookmarksResponse? {
         val bookmarksArray = json.optJSONArray("bookmarks")
             ?: return GetBookmarksResponse(bookmarks = emptyList(), nextCursor = null)
@@ -468,18 +438,18 @@ class KarabauRepository {
                 ?: domainFromUrl(linkUrl)
             val tags = parseTags(obj.optJSONArray("tags"))
 
-        items += BookmarkItem(
-            id = obj.optString("id"),
-            title = if (obj.isNull("title")) null else obj.optString("title"),
-            tags = tags,
-            imageUrl = imageUrl,
-            subtitle = subtitle,
-            linkUrl = linkUrl,
-            archived = obj.optBoolean("archived", false),
-            favourited = obj.optBoolean("favourited", false),
-            createdAt = obj.optString("createdAt", ""),
-            content = content
-        )
+            items += BookmarkItem(
+                id = obj.optString("id"),
+                title = if (obj.isNull("title")) null else obj.optString("title"),
+                tags = tags,
+                imageUrl = imageUrl,
+                subtitle = subtitle,
+                linkUrl = linkUrl,
+                archived = obj.optBoolean("archived", false),
+                favourited = obj.optBoolean("favourited", false),
+                createdAt = obj.optString("createdAt", ""),
+                content = content
+            )
         }
 
         val nextCursor = json.optJSONObject("nextCursor")?.let {

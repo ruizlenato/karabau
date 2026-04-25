@@ -88,13 +88,8 @@ fun CreateBookmarkScreen(
     }
 
     with(sharedTransitionScope) {
-        // Use the AnimatedVisibilityScope's transition to drive bi-directional animations.
-        // EnterExitState: PreEnter → Visible (entering), Visible → PostExit (exiting)
-        // This ensures corner radius and color animate smoothly on BOTH forward (FAB→fullscreen)
-        // and return (fullscreen→FAB) transitions.
         val transition = animatedContentScope.transition
 
-        // Animated corner radius: 16.dp (FAB shape) ↔ 0.dp (fullscreen)
         val cornerRadius by transition.animateDp(
             transitionSpec = {
                 if (targetState == EnterExitState.PostExit) {
@@ -112,7 +107,6 @@ fun CreateBookmarkScreen(
             }
         }
 
-        // Animated background color: primaryContainer (FAB) ↔ surface (fullscreen)
         val containerColor by transition.animateColor(
             transitionSpec = {
                 tween(durationMillis = 400, easing = FastOutSlowInEasing)
@@ -126,10 +120,6 @@ fun CreateBookmarkScreen(
             }
         }
 
-        // The sharedBounds container morphs its bounds/shape from FAB → full screen.
-        // Content inside fades independently so it doesn't vanish at the start of the
-        // return animation — the container stays full-screen while content fades out, 
-        // then the container shrinks back to FAB size.
         Box(
             modifier = Modifier
                 .sharedBounds(
@@ -137,10 +127,10 @@ fun CreateBookmarkScreen(
                     animatedVisibilityScope = animatedContentScope,
                     clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp)),
                     enter = fadeIn(tween(350, delayMillis = 150, easing = FastOutSlowInEasing)) +
-                        scaleIn(
-                            initialScale = 0.92f,
-                            animationSpec = tween(220, delayMillis = 90, easing = FastOutSlowInEasing)
-                        ),
+                            scaleIn(
+                                initialScale = 0.92f,
+                                animationSpec = tween(220, delayMillis = 90, easing = FastOutSlowInEasing)
+                            ),
                     exit = fadeOut(tween(200, easing = FastOutSlowInEasing))
                 )
                 .fillMaxSize(),
