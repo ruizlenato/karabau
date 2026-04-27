@@ -40,6 +40,7 @@ data class HomeUiState(
     val profileName: String? = null,
     val profileImage: String? = null,
     val profileImageHeaders: Map<String, String> = emptyMap(),
+    val hasCompletedInitialBookmarksLoad: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -63,7 +64,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadSavedItems() {
         if (hasLoadedItems && _uiState.value.bookmarks.isNotEmpty()) return
         viewModelScope.launch {
-            val settings = settingsDataStore.settingsFlow.first()
+            val settingsDeferred = async { settingsDataStore.settingsFlow.first() }
+
+            if (_uiState.value.bookmarks.isEmpty()) {
+                val cached = cacheManager.loadCachedBookmarks()
+                if (!cached.isNullOrEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            bookmarks = cached,
+                            displayedBookmarks = computeDisplayedBookmarks(
+                                bookmarks = cached,
+                                query = it.searchQuery,
+                                isSearchActive = it.isSearchActive
+                            )
+                        )
+                    }
+                }
+            }
+
+            val settings = settingsDeferred.await()
 
             cacheManager.loadCachedProfile(profileCacheKey(settings))?.let { cachedProfile ->
                 val profileImage = resolveProfileImageUrl(
@@ -84,123 +103,111 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            if (_uiState.value.bookmarks.isEmpty()) {
-                val cached = cacheManager.loadCachedBookmarks()
-                if (!cached.isNullOrEmpty()) {
-                    _uiState.update {
-                        it.copy(
-                            bookmarks = cached,
-                            displayedBookmarks = computeDisplayedBookmarks(
-                                bookmarks = cached,
-                                query = it.searchQuery,
-                                isSearchActive = it.isSearchActive
-                            )
-                        )
-                    }
-                }
-            }
             loadSavedItemsInternal(isRefresh = false, preloadedSettings = settings)
         }
     }
 
     fun refreshSavedItems() {
-        loadSavedItemsInternal(isRefresh = true)
+        viewModelScope.launch {
+            loadSavedItemsInternal(isRefresh = true)
+        }
     }
 
-    private fun loadSavedItemsInternal(isRefresh: Boolean, preloadedSettings: Settings? = null) {
-        viewModelScope.launch {
-            val hasExistingData = _uiState.value.bookmarks.isNotEmpty()
-            _uiState.update {
-                it.copy(
-                    isLoading = if (isRefresh || hasExistingData) it.isLoading else true,
-                    isRefreshing = isRefresh,
-                    errorMessage = null
+    private suspend fun loadSavedItemsInternal(isRefresh: Boolean, preloadedSettings: Settings? = null) {
+        val hasExistingData = _uiState.value.bookmarks.isNotEmpty()
+        _uiState.update {
+            it.copy(
+                isLoading = if (isRefresh || hasExistingData) it.isLoading else true,
+                isRefreshing = isRefresh,
+                errorMessage = null
+            )
+        }
+
+        val settings = preloadedSettings ?: settingsDataStore.settingsFlow.first()
+        repository.configure(settings)
+
+        val (userResult, bookmarksResult) = coroutineScope {
+            val userDeferred = async { repository.whoAmI() }
+            val bookmarksDeferred = async { repository.getBookmarks(archived = false, limit = 20) }
+            userDeferred.await() to bookmarksDeferred.await()
+        }
+
+        when (userResult) {
+            is ApiResult.Success -> {
+                val profileImage = resolveProfileImageUrl(
+                    serverAddress = settings.address,
+                    image = userResult.data.image
                 )
-            }
+                val profileImageHeaders = buildProfileImageHeaders(
+                    settings = settings,
+                    image = userResult.data.image
+                )
 
-            val settings = preloadedSettings ?: settingsDataStore.settingsFlow.first()
-            repository.configure(settings)
-
-            val (userResult, bookmarksResult) = coroutineScope {
-                val userDeferred = async { repository.whoAmI() }
-                val bookmarksDeferred = async { repository.getBookmarks(archived = false, limit = 20) }
-                userDeferred.await() to bookmarksDeferred.await()
-            }
-
-            when (userResult) {
-                is ApiResult.Success -> {
-                    val profileImage = resolveProfileImageUrl(
-                        serverAddress = settings.address,
-                        image = userResult.data.image
+                _uiState.update {
+                    it.copy(
+                        profileName = userResult.data.name,
+                        profileImage = profileImage,
+                        profileImageHeaders = profileImageHeaders
                     )
-                    val profileImageHeaders = buildProfileImageHeaders(
-                        settings = settings,
-                        image = userResult.data.image
+                }
+
+                viewModelScope.launch {
+                    cacheManager.saveProfile(
+                        cacheKey = profileCacheKey(settings),
+                        profileName = userResult.data.name,
+                        profileImage = userResult.data.image
                     )
-
-                    _uiState.update {
-                        it.copy(
-                            profileName = userResult.data.name,
-                            profileImage = profileImage,
-                            profileImageHeaders = profileImageHeaders
-                        )
-                    }
-
-                    launch {
-                        cacheManager.saveProfile(
-                            cacheKey = profileCacheKey(settings),
-                            profileName = userResult.data.name,
-                            profileImage = userResult.data.image
-                        )
-                    }
-                }
-
-                is ApiResult.Error -> {
-                    Unit
-                }
-
-                is ApiResult.NetworkError -> {
-                    Unit
                 }
             }
 
-            when (bookmarksResult) {
-                is ApiResult.Success -> {
-                    hasLoadedItems = true
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
+            is ApiResult.Error -> {
+                Unit
+            }
+
+            is ApiResult.NetworkError -> {
+                Unit
+            }
+        }
+
+        when (bookmarksResult) {
+            is ApiResult.Success -> {
+                hasLoadedItems = true
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        bookmarks = bookmarksResult.data,
+                        displayedBookmarks = computeDisplayedBookmarks(
                             bookmarks = bookmarksResult.data,
-                            displayedBookmarks = computeDisplayedBookmarks(
-                                bookmarks = bookmarksResult.data,
-                                query = it.searchQuery,
-                                isSearchActive = it.isSearchActive
-                            ),
-                            errorMessage = null
-                        )
-                    }
-                    launch { cacheManager.saveBookmarks(bookmarksResult.data) }
+                            query = it.searchQuery,
+                            isSearchActive = it.isSearchActive
+                        ),
+                        hasCompletedInitialBookmarksLoad = true,
+                        errorMessage = null
+                    )
                 }
+                viewModelScope.launch { cacheManager.saveBookmarks(bookmarksResult.data) }
+            }
 
-                is ApiResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            errorMessage = if ((isRefresh || hasExistingData) && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
-                        )
-                    }
+            is ApiResult.Error -> {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        hasCompletedInitialBookmarksLoad = true,
+                        errorMessage = if ((isRefresh || hasExistingData) && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
+                    )
                 }
+            }
 
-                is ApiResult.NetworkError -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            errorMessage = if ((isRefresh || hasExistingData) && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
-                        )
-                    }
+            is ApiResult.NetworkError -> {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        hasCompletedInitialBookmarksLoad = true,
+                        errorMessage = if ((isRefresh || hasExistingData) && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
+                    )
                 }
             }
         }

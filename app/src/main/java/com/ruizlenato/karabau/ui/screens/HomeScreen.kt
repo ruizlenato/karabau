@@ -277,6 +277,7 @@ fun HomeScreen(
                         0 -> HomeContent(
                             isLoading = homeUiState.isLoading,
                             isRefreshing = homeUiState.isRefreshing,
+                            hasCompletedInitialLoad = homeUiState.hasCompletedInitialBookmarksLoad,
                             errorMessage = homeUiState.errorMessage,
                             bookmarks = homeUiState.displayedBookmarks,
                             isSearchActive = homeUiState.isSearchActive,
@@ -339,6 +340,7 @@ fun HomeScreen(
 private fun HomeContent(
     isLoading: Boolean,
     isRefreshing: Boolean,
+    hasCompletedInitialLoad: Boolean,
     errorMessage: String?,
     bookmarks: List<BookmarkItem>,
     isSearchActive: Boolean,
@@ -384,6 +386,17 @@ private fun HomeContent(
 
         bookmarks.isEmpty() && isSearchActive && searchQuery.isNotBlank() -> {
             SearchEmptyState()
+        }
+
+        bookmarks.isEmpty() && !hasCompletedInitialLoad -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ExpressiveLoadingIndicator()
+                }
+            }
         }
 
         bookmarks.isEmpty() -> {
