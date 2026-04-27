@@ -52,10 +52,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.ruizlenato.karabau.data.local.SettingsDataStore
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.data.remote.ApiResult
-import com.ruizlenato.karabau.data.remote.KarabauRepository
-import kotlinx.coroutines.flow.first
+import com.ruizlenato.karabau.ui.viewmodel.CreateBookmarkViewModel
 import kotlinx.coroutines.launch
 import java.net.URI
 
@@ -77,9 +76,7 @@ fun CreateBookmarkScreen(
     var isSaving by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val settingsDataStore = remember { SettingsDataStore(context.applicationContext) }
-    val repository = remember { KarabauRepository() }
+    val createBookmarkViewModel: CreateBookmarkViewModel = viewModel()
 
     val urlError = when {
         !urlTouched -> null
@@ -162,13 +159,11 @@ fun CreateBookmarkScreen(
                                         coroutineScope.launch {
                                             isSaving = true
                                             saveError = null
-                                            val result = submitBookmark(
-                                                settingsDataStore = settingsDataStore,
-                                                repository = repository,
-                                                url = url,
-                                                title = title,
-                                                note = note
-                                            )
+                        val result = createBookmarkViewModel.submitBookmark(
+                            url = url,
+                            title = title,
+                            note = note
+                        )
                                             when (result) {
                                                 is ApiResult.Success -> onSaved()
                                                 is ApiResult.Error -> saveError = result.message
@@ -248,23 +243,6 @@ fun CreateBookmarkScreen(
             }
         }
     }
-}
-
-private suspend fun submitBookmark(
-    settingsDataStore: SettingsDataStore,
-    repository: KarabauRepository,
-    url: String,
-    title: String,
-    note: String
-): ApiResult<Unit> {
-    val settings = settingsDataStore.settingsFlow.first()
-    repository.configure(settings)
-
-    return repository.createLinkBookmark(
-        url = url.trim(),
-        title = title.trim().takeIf { it.isNotEmpty() },
-        note = note.trim().takeIf { it.isNotEmpty() }
-    )
 }
 
 private fun isValidHttpUrl(value: String): Boolean {
