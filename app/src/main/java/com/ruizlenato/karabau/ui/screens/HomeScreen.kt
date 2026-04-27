@@ -1,9 +1,9 @@
 package com.ruizlenato.karabau.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SizeTransform
@@ -60,6 +60,7 @@ import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 private data class HomeDestination(
     val label: String,
@@ -78,7 +79,8 @@ fun HomeScreen(
     onAddBookmark: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: androidx.compose.animation.AnimatedContentScope,
-    onBookmarkCreated: () -> Unit = {}
+    onBookmarkCreated: () -> Unit = {},
+    savedStateHandle: androidx.lifecycle.SavedStateHandle? = null
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val homeViewModel: HomeViewModel = viewModel()
@@ -90,6 +92,19 @@ fun HomeScreen(
         coroutineScope {
             launch { homeViewModel.loadSavedItems() }
             launch { homeViewModel.loadTags() }
+        }
+    }
+
+    // Observe bookmark_created flag from CreateBookmark navigation result
+    LaunchedEffect(savedStateHandle) {
+        savedStateHandle?.let { handle ->
+            val flow = handle.getStateFlow("bookmark_created", false)
+            flow.collect { created ->
+                if (created) {
+                    handle["bookmark_created"] = false
+                    homeViewModel.refreshSavedItems()
+                }
+            }
         }
     }
 
@@ -189,9 +204,15 @@ fun HomeScreen(
                                     .sharedBounds(
                                         sharedContentState = rememberSharedContentState(key = "create_bookmark_container"),
                                         animatedVisibilityScope = animatedContentScope,
+                                        boundsTransform = BoundsTransform { _, _ ->
+                                            tween(
+                                                durationMillis = 600,
+                                                easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+                                            )
+                                        },
                                         clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp)),
-                                        enter = fadeIn(tween(200, delayMillis = 300, easing = FastOutSlowInEasing)),
-                                        exit = fadeOut(tween(150, easing = FastOutSlowInEasing))
+                                        enter = fadeIn(tween(250, delayMillis = 200, easing = FastOutSlowInEasing)),
+                                        exit = fadeOut(tween(100, easing = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)))
                                     ),
                                 shape = RoundedCornerShape(16.dp),
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -275,7 +296,7 @@ fun HomeScreen(
             bookmark = bookmark,
             onDismiss = { selectedBookmark = null },
             onOpenLink = { url ->
-                val uri = Uri.parse(url)
+                val uri = url.toUri()
                 if (uri.scheme == "http" || uri.scheme == "https") {
                     val intent = Intent(Intent.ACTION_VIEW, uri)
                     context.startActivity(intent)

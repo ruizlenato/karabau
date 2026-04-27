@@ -1,10 +1,12 @@
 package com.ruizlenato.karabau.ui.screens
 
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -12,7 +14,6 @@ import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -91,9 +92,9 @@ fun CreateBookmarkScreen(
         val cornerRadius by transition.animateDp(
             transitionSpec = {
                 if (targetState == EnterExitState.PostExit) {
-                    tween(durationMillis = 200, easing = EaseInCubic)
+                    tween(durationMillis = 400, easing = EaseInCubic)
                 } else {
-                    tween(durationMillis = 400, easing = EaseOutCubic)
+                    tween(durationMillis = 600, easing = EaseOutCubic)
                 }
             },
             label = "containerCornerRadius"
@@ -107,7 +108,11 @@ fun CreateBookmarkScreen(
 
         val containerColor by transition.animateColor(
             transitionSpec = {
-                tween(durationMillis = 400, easing = FastOutSlowInEasing)
+                if (targetState == EnterExitState.PostExit) {
+                    tween(durationMillis = 400, easing = EaseInCubic)
+                } else {
+                    tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                }
             },
             label = "containerColor"
         ) { state ->
@@ -118,18 +123,23 @@ fun CreateBookmarkScreen(
             }
         }
 
+        val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+        val emphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
+
         Box(
             modifier = Modifier
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(key = SHARED_ELEMENT_KEY),
                     animatedVisibilityScope = animatedContentScope,
+                    boundsTransform = BoundsTransform { _, _ ->
+                        tween(
+                            durationMillis = 600,
+                            easing = emphasizedDecelerate
+                        )
+                    },
                     clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(16.dp)),
-                    enter = fadeIn(tween(350, delayMillis = 150, easing = FastOutSlowInEasing)) +
-                            scaleIn(
-                                initialScale = 0.92f,
-                                animationSpec = tween(220, delayMillis = 90, easing = FastOutSlowInEasing)
-                            ),
-                    exit = fadeOut(tween(200, easing = FastOutSlowInEasing))
+                    enter = fadeIn(tween(350, delayMillis = 150, easing = FastOutSlowInEasing)),
+                    exit = fadeOut(tween(200, easing = emphasizedAccelerate))
                 )
                 .fillMaxSize(),
             contentAlignment = Alignment.TopStart

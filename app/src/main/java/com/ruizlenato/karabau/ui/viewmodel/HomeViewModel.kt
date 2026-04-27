@@ -52,11 +52,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var searchDebounceJob: Job? = null
     private var tagDetailJob: Job? = null
+    private var hasLoadedItems = false
+    private var hasLoadedTags = false
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     fun loadSavedItems() {
+        if (hasLoadedItems && _uiState.value.bookmarks.isNotEmpty()) return
         loadSavedItemsInternal(isRefresh = false)
     }
 
@@ -126,6 +129,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             when (bookmarksResult) {
                 is ApiResult.Success -> {
+                    hasLoadedItems = true
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -197,6 +201,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadTags() {
+        if (hasLoadedTags && _uiState.value.tags.isNotEmpty()) return
         loadTagsInternal(isRefresh = false)
     }
 
@@ -225,6 +230,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             ) {
                 is ApiResult.Success -> {
+                    hasLoadedTags = true
                     _uiState.update {
                         it.copy(
                             isTagsLoading = false,

@@ -212,8 +212,30 @@ fun KarabauApp(
 
                     composable(
                         route = Screen.Home.route,
-                        enterTransition = { fadeIn(tween(400)) },
-                        exitTransition = { fadeOut(tween(300)) }
+                        enterTransition = {
+                            when (initialState.destination.route) {
+                                Screen.CreateBookmark.route -> EnterTransition.None
+                                else -> fadeIn(tween(400))
+                            }
+                        },
+                        exitTransition = {
+                            when (targetState.destination.route) {
+                                Screen.CreateBookmark.route -> ExitTransition.None
+                                else -> fadeOut(tween(300))
+                            }
+                        },
+                        popEnterTransition = {
+                            when (initialState.destination.route) {
+                                Screen.CreateBookmark.route -> EnterTransition.None
+                                else -> fadeIn(tween(400))
+                            }
+                        },
+                        popExitTransition = {
+                            when (targetState.destination.route) {
+                                Screen.CreateBookmark.route -> ExitTransition.None
+                                else -> fadeOut(tween(300))
+                            }
+                        }
                     ) {
         HomeScreen(
                     onLogout = {
@@ -230,23 +252,18 @@ fun KarabauApp(
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedContentScope = this@composable,
                             onBookmarkCreated = {
-                            }
+                            },
+                            savedStateHandle = it.savedStateHandle
                         )
 
-                        androidx.compose.runtime.DisposableEffect(navController.currentBackStackEntry) {
-                            val entry = navController.currentBackStackEntry ?: return@DisposableEffect onDispose { }
-                            val savedStateHandle = entry.savedStateHandle
-                            onDispose {
-                                val created = savedStateHandle.get<Boolean>("bookmark_created") ?: false
-                                if (created) {
-                                    savedStateHandle.remove<Boolean>("bookmark_created")
-                                }
-                            }
-                        }
                     }
 
                     composable(
-                        route = Screen.CreateBookmark.route
+                        route = Screen.CreateBookmark.route,
+                        enterTransition = { EnterTransition.None },
+                        exitTransition = { ExitTransition.None },
+                        popEnterTransition = { EnterTransition.None },
+                        popExitTransition = { ExitTransition.None }
                     ) {
                         CreateBookmarkScreen(
                             onBack = { navController.popBackStack() },
