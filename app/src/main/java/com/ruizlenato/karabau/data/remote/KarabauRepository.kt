@@ -8,7 +8,6 @@ import com.ruizlenato.karabau.data.model.CreateBookmarkRequest
 import com.ruizlenato.karabau.data.model.GetBookmarksResponse
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
-import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
@@ -67,8 +66,6 @@ class KarabauRepository {
     }
 
     private inline fun <T> safeApiCall(
-        defaultErrorCode: String = "FAILED",
-        defaultErrorMessage: String = "Request failed",
         block: () -> ApiResult<T>
     ): ApiResult<T> {
         return try {
@@ -343,7 +340,7 @@ class KarabauRepository {
         }
     }
 
-    suspend fun getTag(tagId: String): ApiResult<TagDetails> {
+    suspend fun getTag(tagId: String): ApiResult<TagItem> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
         if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
 
@@ -361,7 +358,7 @@ class KarabauRepository {
             handleBatchGetResponse(response, "load tag") { json ->
                 val id = json.optStringOrNull("id") ?: return@handleBatchGetResponse null
                 val name = json.optStringOrNull("name") ?: return@handleBatchGetResponse null
-                TagDetails(
+                TagItem(
                     id = id,
                     name = name,
                     numBookmarks = json.optInt("numBookmarks", 0)

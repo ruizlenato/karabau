@@ -105,7 +105,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ruizlenato.karabau.data.model.BookmarkItem
-import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 
@@ -596,7 +595,6 @@ private fun ProfileAvatar(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MediumFlexibleTopAppBar(
     title: String,
@@ -631,7 +629,7 @@ private fun TagsContent(
     errorMessage: String?,
     tags: List<TagItem>,
     selectedTag: TagItem?,
-    selectedTagDetails: TagDetails?,
+    selectedTagDetails: TagItem?,
     isTagBookmarksLoading: Boolean,
     tagBookmarks: List<BookmarkItem>,
     tagBookmarksErrorMessage: String?,
@@ -786,7 +784,7 @@ private fun TagsContent(
 @Composable
 private fun TagDetailContent(
     fallbackTag: TagItem,
-    tagDetails: TagDetails?,
+    tagDetails: TagItem?,
     isLoading: Boolean,
     errorMessage: String?,
     bookmarks: List<BookmarkItem>,

@@ -70,10 +70,6 @@ interface KarabauApiService {
     @GET("api/health")
     suspend fun healthCheck(): Response<HealthCheckResponse>
 
-    @GET("api/version")
-    suspend fun checkVersion(
-        @Header("Authorization") auth: String
-    ): Response<VersionResponse>
 }
 
 data class TrpcInput<T>(
@@ -98,6 +94,4 @@ data class TrpcError(
     val message: String? = null
 )
 
-data class VersionResponse(
-    val version: String
-)
+

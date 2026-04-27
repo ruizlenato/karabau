@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.Settings
-import com.ruizlenato.karabau.data.model.TagDetails
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
@@ -31,7 +30,7 @@ data class HomeUiState(
     val tags: List<TagItem> = emptyList(),
     val tagsErrorMessage: String? = null,
     val selectedTag: TagItem? = null,
-    val selectedTagDetails: TagDetails? = null,
+    val selectedTagDetails: TagItem? = null,
     val isTagBookmarksLoading: Boolean = false,
     val tagBookmarks: List<BookmarkItem> = emptyList(),
     val tagBookmarksErrorMessage: String? = null,

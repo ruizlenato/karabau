@@ -228,9 +228,7 @@ fun KarabauApp(
                         enterTransition = { fadeIn(tween(400)) },
                         exitTransition = { fadeOut(tween(300)) }
                     ) {
-                        val homeLifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-
-                        HomeScreen(
+        HomeScreen(
                             onLogout = {
                                 coroutineScope.launch {
                                     settingsDataStore.clearAuth()

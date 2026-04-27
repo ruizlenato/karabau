@@ -1,7 +1,6 @@
 package com.ruizlenato.karabau.ui.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.SettingsDataStore
@@ -17,8 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-private const val TAG = "AuthViewModel"
 
 enum class LoginType {
     PASSWORD,
@@ -213,16 +210,4 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun checkHealth() {
-        viewModelScope.launch {
-            val settings = settingsDataStore.settingsFlow.first()
-            repository.configure(settings)
-            val result = repository.healthCheck()
-            when (result) {
-                is ApiResult.Success -> Log.d(TAG, "Health check passed")
-                is ApiResult.Error -> Log.e(TAG, "Health check failed: ${result.message}")
-                is ApiResult.NetworkError -> Log.e(TAG, "Health check network error: ${result.message}")
-            }
-        }
-    }
 }
