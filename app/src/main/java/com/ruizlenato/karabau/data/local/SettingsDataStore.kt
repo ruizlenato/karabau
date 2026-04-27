@@ -1,6 +1,7 @@
 package com.ruizlenato.karabau.data.local
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -9,6 +10,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.ruizlenato.karabau.data.model.BookmarkView
 import com.ruizlenato.karabau.data.model.DEFAULT_SERVER_ADDRESS
 import com.ruizlenato.karabau.data.model.Settings
@@ -23,8 +26,6 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SettingsDataStore(private val context: Context) {
 
     companion object {
-        private val API_KEY = stringPreferencesKey("api_key")
-        private val API_KEY_ID = stringPreferencesKey("api_key_id")
         private val ADDRESS = stringPreferencesKey("address")
         private val IMAGE_QUALITY = floatPreferencesKey("image_quality")
         private val THEME = stringPreferencesKey("theme")
@@ -35,19 +36,47 @@ class SettingsDataStore(private val context: Context) {
         private val READER_FONT_SIZE = intPreferencesKey("reader_font_size")
         private val READER_LINE_HEIGHT = floatPreferencesKey("reader_line_height")
         private val READER_FONT_FAMILY = stringPreferencesKey("reader_font_family")
+
+        private const val ENCRYPTED_PREFS_NAME = "karabau_secure"
+        private const val KEY_API_KEY = "api_key"
+        private const val KEY_API_KEY_ID = "api_key_id"
     }
 
+    private val encryptedPrefs: SharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            ENCRYPTED_PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
+    private fun getEncryptedApiKey(): String? =
+        encryptedPrefs.getString(KEY_API_KEY, null)?.takeIf { it.isNotBlank() }
+
+    private fun getEncryptedApiKeyId(): String? =
+        encryptedPrefs.getString(KEY_API_KEY_ID, null)?.takeIf { it.isNotBlank() }
+
     val settingsFlow: Flow<Settings> = context.dataStore.data.map { preferences ->
+        val apiKey = getEncryptedApiKey()
+            ?: preferences[stringPreferencesKey("api_key")]?.takeIf { it.isNotBlank() }
+        val apiKeyId = getEncryptedApiKeyId()
+            ?: preferences[stringPreferencesKey("api_key_id")]?.takeIf { it.isNotBlank() }
+
         Settings(
-            apiKey = preferences[API_KEY],
-            apiKeyId = preferences[API_KEY_ID],
+            apiKey = apiKey,
+            apiKeyId = apiKeyId,
             address = preferences[ADDRESS] ?: DEFAULT_SERVER_ADDRESS,
             imageQuality = preferences[IMAGE_QUALITY] ?: 0.2f,
-            theme = preferences[THEME]?.let { Theme.valueOf(it) } ?: Theme.SYSTEM,
-            defaultBookmarkView = preferences[DEFAULT_BOOKMARK_VIEW]?.let { BookmarkView.valueOf(it) } ?: BookmarkView.READER,
+            theme = runCatching { preferences[THEME]?.let { Theme.valueOf(it) } }.getOrNull() ?: Theme.SYSTEM,
+            defaultBookmarkView = runCatching { preferences[DEFAULT_BOOKMARK_VIEW]?.let { BookmarkView.valueOf(it) } }.getOrNull() ?: BookmarkView.READER,
             showNotes = preferences[SHOW_NOTES] ?: false,
             keepScreenOnWhileReading = preferences[KEEP_SCREEN_ON] ?: false,
-            customHeaders = preferences[CUSTOM_HEADERS]?.let { Json.decodeFromString(it) } ?: emptyMap(),
+            customHeaders = runCatching { preferences[CUSTOM_HEADERS]?.let { Json.decodeFromString<Map<String, String>>(it) } }.getOrNull() ?: emptyMap(),
             readerFontSize = preferences[READER_FONT_SIZE],
             readerLineHeight = preferences[READER_LINE_HEIGHT],
             readerFontFamily = preferences[READER_FONT_FAMILY]
@@ -55,9 +84,14 @@ class SettingsDataStore(private val context: Context) {
     }
 
     suspend fun updateSettings(settings: Settings) {
+        encryptedPrefs.edit()
+            .putString(KEY_API_KEY, settings.apiKey ?: "")
+            .putString(KEY_API_KEY_ID, settings.apiKeyId ?: "")
+            .apply()
+
         context.dataStore.edit { preferences ->
-            preferences[API_KEY] = settings.apiKey ?: ""
-            preferences[API_KEY_ID] = settings.apiKeyId ?: ""
+            preferences.remove(stringPreferencesKey("api_key"))
+            preferences.remove(stringPreferencesKey("api_key_id"))
             preferences[ADDRESS] = settings.address
             preferences[IMAGE_QUALITY] = settings.imageQuality
             preferences[THEME] = settings.theme.name
@@ -72,17 +106,24 @@ class SettingsDataStore(private val context: Context) {
     }
 
     suspend fun clearAuth() {
+        encryptedPrefs.edit()
+            .remove(KEY_API_KEY)
+            .remove(KEY_API_KEY_ID)
+            .apply()
+
         context.dataStore.edit { preferences ->
-            preferences.remove(API_KEY)
-            preferences.remove(API_KEY_ID)
+            preferences.remove(stringPreferencesKey("api_key"))
+            preferences.remove(stringPreferencesKey("api_key_id"))
         }
     }
 
     suspend fun setApiKey(apiKey: String, apiKeyId: String? = null) {
-        context.dataStore.edit { preferences ->
-            preferences[API_KEY] = apiKey
-            apiKeyId?.let { preferences[API_KEY_ID] = it }
-        }
+        encryptedPrefs.edit()
+            .putString(KEY_API_KEY, apiKey)
+            .apply {
+                apiKeyId?.let { putString(KEY_API_KEY_ID, it) }
+            }
+            .apply()
     }
 
     suspend fun setServerAddress(address: String) {
