@@ -447,8 +447,7 @@ class KarabauRepository {
                 linkUrl = linkUrl,
                 archived = obj.optBoolean("archived", false),
                 favourited = obj.optBoolean("favourited", false),
-                createdAt = obj.optString("createdAt", ""),
-                content = content
+                createdAt = obj.optString("createdAt", "")
             )
         }
 

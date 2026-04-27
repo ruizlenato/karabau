@@ -2,7 +2,6 @@ package com.ruizlenato.karabau.data.model
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import org.json.JSONObject
 
 data class GetBookmarksRequest(
     val archived: Boolean? = false,
@@ -32,6 +31,5 @@ data class BookmarkItem(
     val linkUrl: String? = null,
     val archived: Boolean = false,
     val favourited: Boolean = false,
-    val createdAt: String,
-    val content: JSONObject? = null
+    val createdAt: String
 )
