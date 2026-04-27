@@ -211,6 +211,7 @@ private fun TagDetailContent(
     onRetry: () -> Unit,
     onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
+    val pullToRefreshState = rememberPullToRefreshState()
     val cardColors = CardDefaults.elevatedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     )
@@ -245,8 +246,19 @@ private fun TagDetailContent(
             )
         }
 
-        when {
-            isLoading -> {
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = onRetry,
+            state = pullToRefreshState,
+            indicator = {
+                PullToRefreshExpressiveIndicator(
+                    isRefreshing = isLoading,
+                    state = pullToRefreshState
+                )
+            }
+        ) {
+            when {
+                isLoading && bookmarks.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -255,7 +267,7 @@ private fun TagDetailContent(
                 }
             }
 
-            errorMessage != null -> {
+                errorMessage != null && bookmarks.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -276,7 +288,7 @@ private fun TagDetailContent(
                 }
             }
 
-            bookmarks.isEmpty() -> {
+                bookmarks.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -289,9 +301,14 @@ private fun TagDetailContent(
                 }
             }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                else -> {
+                    LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val threshold = PullToRefreshDefaults.PositionalThreshold.roundToPx()
+                            translationY = pullToRefreshState.distanceFraction.coerceIn(0f, 1f) * threshold
+                        },
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -305,6 +322,7 @@ private fun TagDetailContent(
                     }
                 }
             }
+        }
         }
     }
 }
