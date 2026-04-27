@@ -41,6 +41,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -243,8 +248,21 @@ fun BookmarkDetailBottomSheet(
                     }
                 }
 
+                val formattedDate = remember(bookmark.createdAt) {
+                    try {
+                        val instant = Instant.parse(bookmark.createdAt)
+                        val localDateTime = instant.atZone(ZoneId.systemDefault())
+                        val locale = Locale.getDefault()
+                        val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                            .withLocale(locale)
+                        localDateTime.format(formatter)
+                    } catch (_: Exception) {
+                        bookmark.createdAt
+                    }
+                }
+
                 Text(
-                    text = bookmark.createdAt,
+                    text = formattedDate,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,
