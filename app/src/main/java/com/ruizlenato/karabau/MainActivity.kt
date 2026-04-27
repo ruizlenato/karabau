@@ -26,7 +26,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ruizlenato.karabau.ui.viewmodel.MainViewModel
-import com.ruizlenato.karabau.ui.viewmodel.MainUiState
 import com.ruizlenato.karabau.ui.screens.CreateBookmarkScreen
 import com.ruizlenato.karabau.ui.screens.HomeScreen
 import com.ruizlenato.karabau.ui.screens.LoginScreen

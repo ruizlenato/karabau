@@ -1,5 +1,7 @@
 package com.ruizlenato.karabau.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -42,13 +44,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,6 +82,8 @@ fun HomeScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val homeViewModel: HomeViewModel = viewModel()
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    var selectedBookmark by remember { mutableStateOf<BookmarkItem?>(null) }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         coroutineScope {
@@ -235,7 +240,8 @@ fun HomeScreen(
                             isSearchActive = homeUiState.isSearchActive,
                             searchQuery = homeUiState.searchQuery,
                             onRetry = { homeViewModel.loadSavedItems() },
-                            onRefresh = { homeViewModel.refreshSavedItems() }
+                            onRefresh = { homeViewModel.refreshSavedItems() },
+                            onBookmarkClick = { selectedBookmark = it }
                         )
 
                         1 -> TagsContent(
@@ -251,12 +257,35 @@ fun HomeScreen(
                             onRefresh = { homeViewModel.refreshTags() },
                             onTagClick = homeViewModel::openTag,
                             onCloseTagDetail = homeViewModel::closeTagDetail,
-                            onRefreshTagBookmarks = homeViewModel::refreshTagBookmarks
+                            onRefreshTagBookmarks = homeViewModel::refreshTagBookmarks,
+                            onBookmarkClick = { selectedBookmark = it }
                         )
                     }
                 }
             }
         }
+    }
+
+    selectedBookmark?.let { bookmark ->
+        BookmarkDetailBottomSheet(
+            bookmark = bookmark,
+            onDismiss = { selectedBookmark = null },
+            onOpenLink = { url ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(intent)
+            },
+            onShare = { item ->
+                val shareText = item.linkUrl ?: item.title ?: item.id
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    item.title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+                }
+                context.startActivity(Intent.createChooser(shareIntent, null))
+            },
+            onDelete = { /* TODO: implement delete */ },
+            onToggleFavourite = { /* TODO: implement toggle favourite */ }
+        )
     }
 }
 
@@ -270,7 +299,8 @@ private fun HomeContent(
     isSearchActive: Boolean,
     searchQuery: String,
     onRetry: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onBookmarkClick: (BookmarkItem) -> Unit
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
 
@@ -362,12 +392,14 @@ private fun HomeContent(
                     if (active) {
                         SearchResultsContent(
                             bookmarks = bookmarks,
-                            modifier = contentModifier
+                            modifier = contentModifier,
+                            onBookmarkClick = onBookmarkClick
                         )
                     } else {
                         BookmarkGridContent(
                             bookmarks = bookmarks,
-                            modifier = contentModifier
+                            modifier = contentModifier,
+                            onBookmarkClick = onBookmarkClick
                         )
                     }
                 }

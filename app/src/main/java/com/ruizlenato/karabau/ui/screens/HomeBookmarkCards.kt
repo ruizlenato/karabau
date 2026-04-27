@@ -50,11 +50,13 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.ruizlenato.karabau.data.model.BookmarkItem
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BookmarkListItem(
     bookmark: BookmarkItem,
     cardColors: CardColors,
-    cardElevation: CardElevation
+    cardElevation: CardElevation,
+    onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     val imageRequest = remember(context, bookmark.imageUrl) {
@@ -67,6 +69,7 @@ internal fun BookmarkListItem(
     }
 
     ElevatedCard(
+        onClick = { onBookmarkClick(bookmark) },
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = cardColors,
@@ -133,7 +136,8 @@ internal fun BookmarkListItem(
 @Composable
 internal fun BookmarkGridContent(
     bookmarks: List<BookmarkItem>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
     val cardColors = CardDefaults.elevatedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -153,20 +157,23 @@ internal fun BookmarkGridContent(
         verticalItemSpacing = 16.dp
     ) {
         items(bookmarks, key = { it.id }) { bookmark ->
-            KeepStyleCard(
-                bookmark = bookmark,
-                cardColors = cardColors,
-                cardElevation = cardElevation
-            )
+        KeepStyleCard(
+            bookmark = bookmark,
+            cardColors = cardColors,
+            cardElevation = cardElevation,
+            onBookmarkClick = onBookmarkClick
+        )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun KeepStyleCard(
+internal fun KeepStyleCard(
     bookmark: BookmarkItem,
     cardColors: CardColors,
-    cardElevation: CardElevation
+    cardElevation: CardElevation,
+    onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     val imageRequest = remember(context, bookmark.imageUrl) {
@@ -179,6 +186,7 @@ private fun KeepStyleCard(
     }
 
     ElevatedCard(
+        onClick = { onBookmarkClick(bookmark) },
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = cardColors,
@@ -239,7 +247,8 @@ private fun KeepStyleCard(
 @Composable
 internal fun SearchResultsContent(
     bookmarks: List<BookmarkItem>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
     val cardColors = CardDefaults.elevatedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -265,11 +274,12 @@ internal fun SearchResultsContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(bookmarks, key = { it.id }) { bookmark ->
-                BookmarkListItem(
-                    bookmark = bookmark,
-                    cardColors = cardColors,
-                    cardElevation = cardElevation
-                )
+        BookmarkListItem(
+            bookmark = bookmark,
+            cardColors = cardColors,
+            cardElevation = cardElevation,
+            onBookmarkClick = onBookmarkClick
+        )
             }
         }
     }

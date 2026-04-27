@@ -55,7 +55,8 @@ internal fun TagsContent(
     onRefresh: () -> Unit,
     onTagClick: (TagItem) -> Unit,
     onCloseTagDetail: () -> Unit,
-    onRefreshTagBookmarks: () -> Unit
+    onRefreshTagBookmarks: () -> Unit,
+    onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
     if (selectedTag != null) {
         TagDetailContent(
@@ -65,7 +66,8 @@ internal fun TagsContent(
             errorMessage = tagBookmarksErrorMessage,
             bookmarks = tagBookmarks,
             onBack = onCloseTagDetail,
-            onRetry = onRefreshTagBookmarks
+            onRetry = onRefreshTagBookmarks,
+            onBookmarkClick = onBookmarkClick
         )
         return
     }
@@ -206,7 +208,8 @@ private fun TagDetailContent(
     errorMessage: String?,
     bookmarks: List<BookmarkItem>,
     onBack: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onBookmarkClick: (BookmarkItem) -> Unit = {}
 ) {
     val cardColors = CardDefaults.elevatedCardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -293,11 +296,12 @@ private fun TagDetailContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(bookmarks, key = { it.id }) { bookmark ->
-                        BookmarkListItem(
-                            bookmark = bookmark,
-                            cardColors = cardColors,
-                            cardElevation = cardElevation
-                        )
+                BookmarkListItem(
+                    bookmark = bookmark,
+                    cardColors = cardColors,
+                    cardElevation = cardElevation,
+                    onBookmarkClick = onBookmarkClick
+                )
                     }
                 }
             }
