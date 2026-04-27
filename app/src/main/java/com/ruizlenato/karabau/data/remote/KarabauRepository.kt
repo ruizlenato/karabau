@@ -494,7 +494,7 @@ class KarabauRepository {
     }
 
     private fun JSONObject.optStringOrNull(name: String): String? {
-        val element = get(name) ?: return null
+        val element = opt(name) ?: return null
         if (element == JSONObject.NULL) return null
         val value = element.toString().trim()
         return value.takeIf { it.isNotBlank() }
