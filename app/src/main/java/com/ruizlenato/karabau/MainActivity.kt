@@ -18,18 +18,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.ruizlenato.karabau.data.local.SettingsDataStore
-import com.ruizlenato.karabau.data.model.isLoggedIn
+import com.ruizlenato.karabau.ui.viewmodel.MainViewModel
+import com.ruizlenato.karabau.ui.viewmodel.MainUiState
 import com.ruizlenato.karabau.ui.screens.CreateBookmarkScreen
 import com.ruizlenato.karabau.ui.screens.HomeScreen
 import com.ruizlenato.karabau.ui.screens.LoginScreen
@@ -37,7 +34,6 @@ import com.ruizlenato.karabau.ui.screens.ServerConfigScreen
 import com.ruizlenato.karabau.ui.screens.WelcomeScreen
 import com.ruizlenato.karabau.ui.theme.KarabauTheme
 import com.ruizlenato.karabau.ui.viewmodel.AuthViewModel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private const val ForwardBackwardDuration = 450
@@ -117,18 +113,10 @@ fun KarabauApp(
 ) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val settingsDataStore = remember { SettingsDataStore(context) }
-    var isLoading by remember { mutableStateOf(true) }
-    var isLoggedIn by remember { mutableStateOf(false) }
+    val mainViewModel: MainViewModel = viewModel()
+    val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        val settings = settingsDataStore.settingsFlow.first()
-        isLoggedIn = settings.isLoggedIn()
-        isLoading = false
-    }
-
-    if (!isLoading) {
+    if (!mainUiState.isLoading) {
         LaunchedEffect(Unit) {
             onReady()
         }
@@ -140,7 +128,7 @@ fun KarabauApp(
             androidx.compose.animation.SharedTransitionLayout {
                 NavHost(
                     navController = navController,
-                    startDestination = if (isLoggedIn) Screen.Home.route else Screen.Welcome.route
+                    startDestination = if (mainUiState.isLoggedIn) Screen.Home.route else Screen.Welcome.route
                 ) {
                     composable(
                         route = Screen.Welcome.route,
@@ -214,9 +202,9 @@ fun KarabauApp(
                     ) {
                         LoginScreen(
                             onBackClick = { navController.popBackStack() },
-                            onLoginSuccess = {
-                                isLoggedIn = true
-                                navController.navigate(Screen.Home.route) {
+                    onLoginSuccess = {
+                        mainViewModel.setLoggedIn(true)
+                        navController.navigate(Screen.Home.route) {
                                     popUpTo(Screen.Welcome.route) { inclusive = true }
                                 }
                             }
@@ -229,15 +217,14 @@ fun KarabauApp(
                         exitTransition = { fadeOut(tween(300)) }
                     ) {
         HomeScreen(
-                            onLogout = {
-                                coroutineScope.launch {
-                                    settingsDataStore.clearAuth()
-                                    isLoggedIn = false
-                                    navController.navigate(Screen.Welcome.route) {
-                                        popUpTo(Screen.Home.route) { inclusive = true }
-                                    }
-                                }
-                            },
+                    onLogout = {
+                        coroutineScope.launch {
+                            mainViewModel.clearAuth()
+                            navController.navigate(Screen.Welcome.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                            }
+                        }
+                    },
                             onAddBookmark = {
                                 navController.navigate(Screen.CreateBookmark.route)
                             },
