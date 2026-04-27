@@ -95,6 +95,9 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Collections
+    implementation(libs.kotlinx.collections.immutable)
+
     // Images
     implementation(libs.coil.compose)
 

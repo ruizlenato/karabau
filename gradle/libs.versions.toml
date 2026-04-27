@@ -14,6 +14,7 @@ datastore = "1.1.4"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
 gson = "2.11.0"
+kotlinxCollectionsImmutable = "0.3.8"
 kotlinxSerialization = "1.8.0"
 coreSplashscreen = "1.0.1"
 coil = "2.7.0"
@@ -51,6 +52,9 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+# Collections
+kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 
 # Images
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

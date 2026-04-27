@@ -77,8 +77,9 @@ fun CreateBookmarkScreen(
     var isSaving by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
-    val repository = remember { KarabauRepository() }
     val context = androidx.compose.ui.platform.LocalContext.current
+    val settingsDataStore = remember { SettingsDataStore(context.applicationContext) }
+    val repository = remember { KarabauRepository() }
 
     val urlError = when {
         !urlTouched -> null
@@ -162,7 +163,7 @@ fun CreateBookmarkScreen(
                                             isSaving = true
                                             saveError = null
                                             val result = submitBookmark(
-                                                context = context,
+                                                settingsDataStore = settingsDataStore,
                                                 repository = repository,
                                                 url = url,
                                                 title = title,
@@ -250,13 +251,12 @@ fun CreateBookmarkScreen(
 }
 
 private suspend fun submitBookmark(
-    context: android.content.Context,
+    settingsDataStore: SettingsDataStore,
     repository: KarabauRepository,
     url: String,
     title: String,
     note: String
 ): ApiResult<Unit> {
-    val settingsDataStore = SettingsDataStore(context.applicationContext)
     val settings = settingsDataStore.settingsFlow.first()
     repository.configure(settings)
 

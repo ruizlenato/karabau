@@ -13,6 +13,9 @@ import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
 import com.ruizlenato.karabau.data.model.WhoAmIResponse
 import com.ruizlenato.karabau.data.model.isLoggedIn
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -505,8 +508,8 @@ class KarabauRepository {
             ?.takeIf { it.isNotBlank() }
     }
 
-    private fun parseTags(tagsArray: org.json.JSONArray?): List<String> {
-        if (tagsArray == null || tagsArray.length() == 0) return emptyList()
+    private fun parseTags(tagsArray: org.json.JSONArray?): ImmutableList<String> {
+        if (tagsArray == null || tagsArray.length() == 0) return persistentListOf()
 
         val tags = mutableListOf<String>()
         for (i in 0 until tagsArray.length()) {
@@ -516,6 +519,6 @@ class KarabauRepository {
                 is JSONObject -> item.optStringOrNull("name")?.let(tags::add)
             }
         }
-        return tags
+        return tags.toImmutableList()
     }
 }

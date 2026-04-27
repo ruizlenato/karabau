@@ -1,5 +1,7 @@
 package com.ruizlenato.karabau.data.model
 
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import org.json.JSONObject
 
 data class GetBookmarksRequest(
@@ -24,7 +26,7 @@ data class GetBookmarksResponse(
 data class BookmarkItem(
     val id: String,
     val title: String? = null,
-    val tags: List<String> = emptyList(),
+    val tags: ImmutableList<String> = persistentListOf(),
     val imageUrl: String? = null,
     val subtitle: String? = null,
     val linkUrl: String? = null,
