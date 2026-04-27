@@ -140,7 +140,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             when (result) {
                 is ApiResult.Success -> {
                     if (currentState.loginType == LoginType.PASSWORD) {
-                        val data = result.data as ExchangeKeyResponse
+                        val data = result.data as? ExchangeKeyResponse
+                        if (data == null) {
+                            _uiState.update {
+                                it.copy(
+                                    authState = AuthState.ERROR,
+                                    errorMessage = "Unexpected response from server"
+                                )
+                            }
+                            return@launch
+                        }
                         val newSettings = settings.copy(
                             address = currentState.serverAddress,
                             apiKey = data.key,
