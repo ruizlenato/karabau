@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -114,30 +115,33 @@ fun HomeScreen(
     AnimatedContent(
         targetState = selectedTab,
         transitionSpec = {
+            val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+            val emphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
+
             when {
                 targetState == 2 && initialState != 2 -> {
                     (slideInHorizontally(
-                        initialOffsetX = { fullWidth -> (fullWidth * 1.05f).toInt() },
-                        animationSpec = tween(durationMillis = 360, easing = LinearOutSlowInEasing)
-                    ) + fadeIn(animationSpec = tween(240, easing = LinearOutSlowInEasing)))
+                        initialOffsetX = { fullWidth -> (fullWidth * 0.30f).toInt() },
+                        animationSpec = tween(durationMillis = 400, easing = emphasizedDecelerate)
+                    ) + fadeIn(animationSpec = tween(200, delayMillis = 50, easing = LinearOutSlowInEasing)))
                         .togetherWith(
                             slideOutHorizontally(
-                                targetOffsetX = { fullWidth -> -(fullWidth * 0.1f).toInt() },
-                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-                            ) + fadeOut(animationSpec = tween(220, easing = FastOutLinearInEasing))
+                                targetOffsetX = { fullWidth -> -(fullWidth * 0.10f).toInt() },
+                                animationSpec = tween(durationMillis = 350, easing = emphasizedAccelerate)
+                            ) + fadeOut(animationSpec = tween(150, easing = FastOutLinearInEasing))
                         ).using(SizeTransform(clip = false))
                 }
 
                 initialState == 2 && targetState != 2 -> {
                     (slideInHorizontally(
-                        initialOffsetX = { fullWidth -> -(fullWidth * 0.1f).toInt() },
-                        animationSpec = tween(durationMillis = 360, easing = LinearOutSlowInEasing)
-                    ) + fadeIn(animationSpec = tween(240, easing = LinearOutSlowInEasing)))
+                        initialOffsetX = { fullWidth -> -(fullWidth * 0.10f).toInt() },
+                        animationSpec = tween(durationMillis = 400, easing = emphasizedDecelerate)
+                    ) + fadeIn(animationSpec = tween(250, delayMillis = 100, easing = LinearOutSlowInEasing)))
                         .togetherWith(
                             slideOutHorizontally(
-                                targetOffsetX = { fullWidth -> (fullWidth * 1.05f).toInt() },
-                                animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing)
-                            ) + fadeOut(animationSpec = tween(240, easing = FastOutLinearInEasing))
+                                targetOffsetX = { fullWidth -> (fullWidth * 0.30f).toInt() },
+                                animationSpec = tween(durationMillis = 350, easing = emphasizedAccelerate)
+                            ) + fadeOut(animationSpec = tween(200, easing = FastOutLinearInEasing))
                         ).using(SizeTransform(clip = false))
                 }
 
