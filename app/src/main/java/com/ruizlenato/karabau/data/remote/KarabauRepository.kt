@@ -6,6 +6,7 @@ import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.BookmarkCursor
 import com.ruizlenato.karabau.data.model.CreateBookmarkRequest
 import com.ruizlenato.karabau.data.model.GetBookmarksResponse
+import com.ruizlenato.karabau.data.model.SavedListItem
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagItem
@@ -199,6 +200,8 @@ class KarabauRepository {
     suspend fun getBookmarks(
         archived: Boolean? = false,
         tagId: String? = null,
+        listId: String? = null,
+        favourited: Boolean? = null,
         cursor: BookmarkCursor? = null,
         limit: Int = 20
     ): ApiResult<List<BookmarkItem>> {
@@ -212,6 +215,8 @@ class KarabauRepository {
                 put("useCursorV2", true)
                 put("limit", limit)
                 tagId?.takeIf { it.isNotBlank() }?.let { put("tagId", it) }
+                listId?.takeIf { it.isNotBlank() }?.let { put("listId", it) }
+                favourited?.let { put("favourited", it) }
                 cursor?.let {
                     put("cursor", JSONObject().apply {
                         put("createdAt", it.createdAt)
@@ -278,6 +283,87 @@ class KarabauRepository {
                 val pageResult = getBookmarksPage(
                     archived = archived,
                     tagId = tagId,
+                    listId = null,
+                    favourited = null,
+                    cursor = cursor,
+                    limit = minOf(limit, maxTotal - allItems.size)
+                )
+
+                when (pageResult) {
+                    is ApiResult.Success -> {
+                        if (pageResult.data.bookmarks.isEmpty()) break
+                        allItems += pageResult.data.bookmarks
+                        cursor = pageResult.data.nextCursor
+                        if (cursor == null) break
+                    }
+
+                    is ApiResult.Error -> return@safeApiCall pageResult
+                    is ApiResult.NetworkError -> return@safeApiCall pageResult
+                }
+            }
+
+            ApiResult.Success(allItems)
+        }
+    }
+
+    suspend fun getAllBookmarksByList(
+        listId: String,
+        archived: Boolean? = null,
+        limit: Int = 20,
+        maxTotal: Int = 200
+    ): ApiResult<List<BookmarkItem>> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val allItems = mutableListOf<BookmarkItem>()
+            var cursor: BookmarkCursor? = null
+
+            while (allItems.size < maxTotal) {
+                val pageResult = getBookmarksPage(
+                    archived = archived,
+                    tagId = null,
+                    listId = listId,
+                    favourited = null,
+                    cursor = cursor,
+                    limit = minOf(limit, maxTotal - allItems.size)
+                )
+
+                when (pageResult) {
+                    is ApiResult.Success -> {
+                        if (pageResult.data.bookmarks.isEmpty()) break
+                        allItems += pageResult.data.bookmarks
+                        cursor = pageResult.data.nextCursor
+                        if (cursor == null) break
+                    }
+
+                    is ApiResult.Error -> return@safeApiCall pageResult
+                    is ApiResult.NetworkError -> return@safeApiCall pageResult
+                }
+            }
+
+            ApiResult.Success(allItems)
+        }
+    }
+
+    suspend fun getAllFavouritedBookmarks(
+        archived: Boolean? = false,
+        limit: Int = 20,
+        maxTotal: Int = 200
+    ): ApiResult<List<BookmarkItem>> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val allItems = mutableListOf<BookmarkItem>()
+            var cursor: BookmarkCursor? = null
+
+            while (allItems.size < maxTotal) {
+                val pageResult = getBookmarksPage(
+                    archived = archived,
+                    tagId = null,
+                    listId = null,
+                    favourited = true,
                     cursor = cursor,
                     limit = minOf(limit, maxTotal - allItems.size)
                 )
@@ -379,6 +465,46 @@ class KarabauRepository {
         }
     }
 
+    suspend fun getLists(): ApiResult<List<SavedListItem>> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val inputJson = buildTrpcInput { }
+
+            val response = apiService.listLists(
+                auth = settings.authHeader(),
+                batch = "1",
+                input = inputJson
+            )
+
+            handleBatchGetResponse(response, "load lists") { json ->
+                parseListsFromBatchJson(json)
+            }
+        }
+    }
+
+    suspend fun getList(listId: String): ApiResult<SavedListItem> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val inputJson = buildTrpcInput {
+                put("listId", listId)
+            }
+
+            val response = apiService.getList(
+                auth = settings.authHeader(),
+                batch = "1",
+                input = inputJson
+            )
+
+            handleBatchGetResponse(response, "load list") { json ->
+                parseListItem(json)
+            }
+        }
+    }
+
     suspend fun revokeKey(apiKeyId: String): ApiResult<Unit> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
         if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
@@ -399,6 +525,8 @@ class KarabauRepository {
     private suspend fun getBookmarksPage(
         archived: Boolean?,
         tagId: String?,
+        listId: String?,
+        favourited: Boolean?,
         cursor: BookmarkCursor?,
         limit: Int
     ): ApiResult<GetBookmarksResponse> {
@@ -411,6 +539,8 @@ class KarabauRepository {
                 put("useCursorV2", true)
                 put("limit", limit)
                 tagId?.takeIf { it.isNotBlank() }?.let { put("tagId", it) }
+                listId?.takeIf { it.isNotBlank() }?.let { put("listId", it) }
+                favourited?.let { put("favourited", it) }
                 cursor?.let {
                     put("cursor", JSONObject().apply {
                         put("createdAt", it.createdAt)
@@ -489,6 +619,36 @@ class KarabauRepository {
         }
 
         return tags
+    }
+
+    private fun parseListsFromBatchJson(json: JSONObject): List<SavedListItem>? {
+        val listsArray = json.optJSONArray("lists") ?: return emptyList()
+
+        val lists = mutableListOf<SavedListItem>()
+        for (i in 0 until listsArray.length()) {
+            val obj = listsArray.optJSONObject(i) ?: continue
+            parseListItem(obj)?.let(lists::add)
+        }
+
+        return lists
+    }
+
+    private fun parseListItem(obj: JSONObject): SavedListItem? {
+        val id = obj.optStringOrNull("id") ?: return null
+        val name = obj.optStringOrNull("name") ?: return null
+
+        return SavedListItem(
+            id = id,
+            name = name,
+            description = obj.optStringOrNull("description"),
+            icon = obj.optStringOrNull("icon") ?: "📚",
+            parentId = obj.optStringOrNull("parentId"),
+            type = obj.optStringOrNull("type") ?: "manual",
+            query = obj.optStringOrNull("query"),
+            isPublic = obj.optBoolean("public", false),
+            hasCollaborators = obj.optBoolean("hasCollaborators", false),
+            userRole = obj.optStringOrNull("userRole") ?: "owner"
+        )
     }
 
     private fun parseBatchJson(raw: String): JSONObject? {

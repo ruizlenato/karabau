@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material3.Button
@@ -71,7 +72,8 @@ private data class HomeDestination(
 
 private val homeDestinations = listOf(
     HomeDestination(label = "Home", icon = Icons.Default.Home),
-    HomeDestination(label = "Tags", icon = Icons.Default.LocalOffer)
+    HomeDestination(label = "Tags", icon = Icons.Default.LocalOffer),
+    HomeDestination(label = "Lists", icon = Icons.AutoMirrored.Filled.FormatListBulleted)
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -94,6 +96,7 @@ fun HomeScreen(
         coroutineScope {
             launch { homeViewModel.loadSavedItems() }
             launch { homeViewModel.loadTags() }
+            launch { homeViewModel.loadLists() }
         }
     }
 
@@ -112,6 +115,8 @@ fun HomeScreen(
     LaunchedEffect(selectedTab) {
         if (selectedTab == 1) {
             homeViewModel.loadTags()
+        } else if (selectedTab == 2) {
+            homeViewModel.loadLists()
         }
     }
 
@@ -136,12 +141,16 @@ fun HomeScreen(
         homeViewModel.onSearchQueryChange("")
     }
 
-    BackHandler(enabled = selectedTab == 2) {
+    BackHandler(enabled = selectedTab == 3) {
         selectedTab = 0
     }
 
     BackHandler(enabled = selectedTab == 1 && homeUiState.selectedTag != null) {
         homeViewModel.closeTagDetail()
+    }
+
+    BackHandler(enabled = selectedTab == 2 && homeUiState.selectedList != null) {
+        homeViewModel.closeListDetail()
     }
 
     AnimatedContent(
@@ -151,7 +160,7 @@ fun HomeScreen(
             val emphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
 
             when {
-                targetState == 2 && initialState != 2 -> {
+                targetState == 3 && initialState != 3 -> {
                     (slideInHorizontally(
                         initialOffsetX = { fullWidth -> (fullWidth * 0.30f).toInt() },
                         animationSpec = tween(durationMillis = 400, easing = emphasizedDecelerate)
@@ -164,7 +173,7 @@ fun HomeScreen(
                         ).using(SizeTransform(clip = false))
                 }
 
-                initialState == 2 && targetState != 2 -> {
+                initialState == 3 && targetState != 3 -> {
                     (slideInHorizontally(
                         initialOffsetX = { fullWidth -> -(fullWidth * 0.10f).toInt() },
                         animationSpec = tween(durationMillis = 400, easing = emphasizedDecelerate)
@@ -185,7 +194,7 @@ fun HomeScreen(
         },
         label = "mainTabTransition"
     ) { activeTab ->
-        if (activeTab == 2) {
+        if (activeTab == 3) {
             SettingsContent(
                 onLogout = onLogout,
                 onBack = { selectedTab = 0 }
@@ -206,7 +215,7 @@ fun HomeScreen(
                             onProfileClick = {
                                 homeViewModel.onSearchActiveChange(false)
                                 homeViewModel.onSearchQueryChange("")
-                                selectedTab = 2
+                                selectedTab = 3
                             }
                         )
                     }
@@ -301,6 +310,24 @@ fun HomeScreen(
                             onTagClick = homeViewModel::openTag,
                             onCloseTagDetail = homeViewModel::closeTagDetail,
                             onRefreshTagBookmarks = homeViewModel::refreshTagBookmarks,
+                            onBookmarkClick = { selectedBookmark = it }
+                        )
+
+                        2 -> ListsContent(
+                            isLoading = homeUiState.isListsLoading,
+                            isRefreshing = homeUiState.isListsRefreshing,
+                            errorMessage = homeUiState.listsErrorMessage,
+                            lists = homeUiState.lists,
+                            selectedList = homeUiState.selectedList,
+                            selectedListDetails = homeUiState.selectedListDetails,
+                            isListBookmarksLoading = homeUiState.isListBookmarksLoading,
+                            listBookmarks = homeUiState.listBookmarks,
+                            listBookmarksErrorMessage = homeUiState.listBookmarksErrorMessage,
+                            onRefresh = { homeViewModel.refreshLists() },
+                            onOpenFavorites = homeViewModel::openFavoritesList,
+                            onListClick = homeViewModel::openList,
+                            onCloseListDetail = homeViewModel::closeListDetail,
+                            onRefreshListBookmarks = homeViewModel::refreshListBookmarks,
                             onBookmarkClick = { selectedBookmark = it }
                         )
                     }

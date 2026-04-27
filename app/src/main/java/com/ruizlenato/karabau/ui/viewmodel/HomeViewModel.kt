@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.LocalCacheManager
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.model.SavedListItem
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
@@ -26,15 +27,24 @@ data class HomeUiState(
     val isRefreshing: Boolean = false,
     val isTagsLoading: Boolean = false,
     val isTagsRefreshing: Boolean = false,
+    val isListsLoading: Boolean = false,
+    val isListsRefreshing: Boolean = false,
     val bookmarks: List<BookmarkItem> = emptyList(),
     val displayedBookmarks: List<BookmarkItem> = emptyList(),
     val tags: List<TagItem> = emptyList(),
     val tagsErrorMessage: String? = null,
+    val lists: List<SavedListItem> = emptyList(),
+    val listsErrorMessage: String? = null,
     val selectedTag: TagItem? = null,
     val selectedTagDetails: TagItem? = null,
+    val selectedList: SavedListItem? = null,
+    val selectedListDetails: SavedListItem? = null,
     val isTagBookmarksLoading: Boolean = false,
+    val isListBookmarksLoading: Boolean = false,
     val tagBookmarks: List<BookmarkItem> = emptyList(),
+    val listBookmarks: List<BookmarkItem> = emptyList(),
     val tagBookmarksErrorMessage: String? = null,
+    val listBookmarksErrorMessage: String? = null,
     val searchQuery: String = "",
     val isSearchActive: Boolean = false,
     val profileName: String? = null,
@@ -46,6 +56,10 @@ data class HomeUiState(
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
+    companion object {
+        const val FAVORITES_LIST_ID = "__favorites__"
+    }
+
     private val settingsDataStore = SettingsDataStore(application)
     private val cacheManager = LocalCacheManager(application)
     private val repository = KarabauRepository()
@@ -55,8 +69,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var searchDebounceJob: Job? = null
     private var tagDetailJob: Job? = null
+    private var listDetailJob: Job? = null
     private var hasLoadedItems = false
     private var hasLoadedTags = false
+    private var hasLoadedLists = false
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -262,6 +278,65 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadTagsInternal(isRefresh = true)
     }
 
+    fun loadLists() {
+        if (hasLoadedLists && _uiState.value.lists.isNotEmpty()) return
+        loadListsInternal(isRefresh = false)
+    }
+
+    fun refreshLists() {
+        loadListsInternal(isRefresh = true)
+    }
+
+    private fun loadListsInternal(isRefresh: Boolean) {
+        viewModelScope.launch {
+            val hasExistingLists = _uiState.value.lists.isNotEmpty()
+            _uiState.update {
+                it.copy(
+                    isListsLoading = if (isRefresh || hasExistingLists) it.isListsLoading else true,
+                    isListsRefreshing = isRefresh,
+                    listsErrorMessage = null
+                )
+            }
+
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+
+            when (val result = repository.getLists()) {
+                is ApiResult.Success -> {
+                    hasLoadedLists = true
+                    _uiState.update {
+                        it.copy(
+                            isListsLoading = false,
+                            isListsRefreshing = false,
+                            lists = result.data,
+                            listsErrorMessage = null
+                        )
+                    }
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isListsLoading = false,
+                            isListsRefreshing = false,
+                            listsErrorMessage = if ((isRefresh || hasExistingLists) && it.lists.isNotEmpty()) null else result.message
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isListsLoading = false,
+                            isListsRefreshing = false,
+                            listsErrorMessage = if ((isRefresh || hasExistingLists) && it.lists.isNotEmpty()) null else result.message
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun loadTagsInternal(isRefresh: Boolean) {
         viewModelScope.launch {
             val hasExistingTags = _uiState.value.tags.isNotEmpty()
@@ -349,6 +424,147 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshTagBookmarks() {
         if (_uiState.value.selectedTag != null) {
             loadSelectedTagContent()
+        }
+    }
+
+    fun openList(list: SavedListItem) {
+        listDetailJob?.cancel()
+        _uiState.update {
+            it.copy(
+                selectedList = list,
+                selectedListDetails = null,
+                isListBookmarksLoading = true,
+                listBookmarks = emptyList(),
+                listBookmarksErrorMessage = null
+            )
+        }
+        loadSelectedListContent()
+    }
+
+    fun openFavoritesList() {
+        openList(
+            SavedListItem(
+                id = FAVORITES_LIST_ID,
+                name = "Favorites",
+                description = "Your favourited bookmarks",
+                icon = "⭐",
+                parentId = null,
+                type = "smart",
+                query = "favourited:true",
+                isPublic = false,
+                hasCollaborators = false,
+                userRole = "owner"
+            )
+        )
+    }
+
+    fun closeListDetail() {
+        listDetailJob?.cancel()
+        _uiState.update {
+            it.copy(
+                selectedList = null,
+                selectedListDetails = null,
+                isListBookmarksLoading = false,
+                listBookmarks = emptyList(),
+                listBookmarksErrorMessage = null
+            )
+        }
+    }
+
+    fun refreshListBookmarks() {
+        if (_uiState.value.selectedList != null) {
+            loadSelectedListContent()
+        }
+    }
+
+    private fun loadSelectedListContent() {
+        val selectedList = _uiState.value.selectedList ?: return
+
+        listDetailJob = viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isListBookmarksLoading = true,
+                    listBookmarksErrorMessage = null
+                )
+            }
+
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+
+            val (listResult, bookmarksResult) = if (selectedList.id == FAVORITES_LIST_ID) {
+                ApiResult.Success(selectedList) to repository.getAllFavouritedBookmarks(
+                    archived = false,
+                    limit = 20
+                )
+            } else {
+                coroutineScope {
+                    val listDeferred = async { repository.getList(selectedList.id) }
+                    val bookmarksDeferred = async {
+                        repository.getAllBookmarksByList(
+                            archived = null,
+                            listId = selectedList.id,
+                            limit = 20
+                        )
+                    }
+                    listDeferred.await() to bookmarksDeferred.await()
+                }
+            }
+
+            if (_uiState.value.selectedList?.id != selectedList.id) return@launch
+
+            when (listResult) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(selectedListDetails = listResult.data) }
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isListBookmarksLoading = false,
+                            listBookmarksErrorMessage = listResult.message
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isListBookmarksLoading = false,
+                            listBookmarksErrorMessage = listResult.message
+                        )
+                    }
+                }
+            }
+
+            when (bookmarksResult) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isListBookmarksLoading = false,
+                            listBookmarks = bookmarksResult.data,
+                            listBookmarksErrorMessage = null
+                        )
+                    }
+                }
+
+                is ApiResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isListBookmarksLoading = false,
+                            listBookmarksErrorMessage = bookmarksResult.message
+                        )
+                    }
+                }
+
+                is ApiResult.NetworkError -> {
+                    _uiState.update {
+                        it.copy(
+                            isListBookmarksLoading = false,
+                            listBookmarksErrorMessage = bookmarksResult.message
+                        )
+                    }
+                }
+            }
         }
     }
 
