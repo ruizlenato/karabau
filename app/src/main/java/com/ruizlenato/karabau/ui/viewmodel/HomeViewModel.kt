@@ -51,6 +51,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var cachedProfileHeadersMap: Map<String, String> = emptyMap()
 
     private var searchDebounceJob: Job? = null
+    private var tagDetailJob: Job? = null
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -258,6 +259,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openTag(tag: TagItem) {
+        tagDetailJob?.cancel()
         _uiState.update {
             it.copy(
                 selectedTag = tag,
@@ -271,6 +273,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun closeTagDetail() {
+        tagDetailJob?.cancel()
         _uiState.update {
             it.copy(
                 selectedTag = null,
@@ -291,7 +294,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadSelectedTagContent() {
         val selectedTag = _uiState.value.selectedTag ?: return
 
-        viewModelScope.launch {
+        tagDetailJob = viewModelScope.launch {
             _uiState.update {
                 it.copy(
                     isTagBookmarksLoading = true,
@@ -313,6 +316,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 tagDeferred.await() to bookmarksDeferred.await()
             }
+
+            if (_uiState.value.selectedTag?.id != selectedTag.id) return@launch
 
             when (tagResult) {
                 is ApiResult.Success -> {
