@@ -58,6 +58,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
+import coil.imageLoader
+import coil.request.ImageRequest
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
@@ -110,6 +112,22 @@ fun HomeScreen(
     LaunchedEffect(selectedTab) {
         if (selectedTab == 1) {
             homeViewModel.loadTags()
+        }
+    }
+
+    LaunchedEffect(homeUiState.profileImage, homeUiState.profileImageHeaders) {
+        val profileImage = homeUiState.profileImage
+        if (!profileImage.isNullOrBlank()) {
+            context.imageLoader.enqueue(
+                ImageRequest.Builder(context)
+                    .data(profileImage)
+                    .apply {
+                        homeUiState.profileImageHeaders.forEach { (key, value) ->
+                            setHeader(key, value)
+                        }
+                    }
+                    .build()
+            )
         }
     }
 

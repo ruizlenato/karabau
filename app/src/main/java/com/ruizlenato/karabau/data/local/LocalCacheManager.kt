@@ -16,6 +16,7 @@ class LocalCacheManager(context: Context) {
     private val cacheDir = File(context.cacheDir, "data_cache").also { it.mkdirs() }
     private val bookmarksFile = File(cacheDir, "bookmarks.json")
     private val tagsFile = File(cacheDir, "tags.json")
+    private val profileFile = File(cacheDir, "profile.json")
 
     private val mutex = Mutex()
     private val gson = Gson()
@@ -61,7 +62,42 @@ class LocalCacheManager(context: Context) {
             }
         }
     }
+
+    suspend fun loadCachedProfile(cacheKey: String): CachedProfileSummary? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            if (!profileFile.exists()) return@withLock null
+            runCatching {
+                val json = profileFile.readText()
+                gson.fromJson(json, CachedProfileSummary::class.java)
+            }.getOrNull()?.takeIf { it.cacheKey == cacheKey }
+        }
+    }
+
+    suspend fun saveProfile(
+        cacheKey: String,
+        profileName: String?,
+        profileImage: String?
+    ) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            runCatching {
+                val tmp = File(profileFile.parentFile, "${profileFile.name}.tmp")
+                val payload = CachedProfileSummary(
+                    cacheKey = cacheKey,
+                    profileName = profileName,
+                    profileImage = profileImage
+                )
+                tmp.writeText(gson.toJson(payload))
+                tmp.renameTo(profileFile)
+            }
+        }
+    }
 }
+
+data class CachedProfileSummary(
+    val cacheKey: String,
+    val profileName: String? = null,
+    val profileImage: String? = null
+)
 
 private data class CachedBookmarkItem(
     val id: String,

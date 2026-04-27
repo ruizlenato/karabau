@@ -63,6 +63,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadSavedItems() {
         if (hasLoadedItems && _uiState.value.bookmarks.isNotEmpty()) return
         viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+
+            cacheManager.loadCachedProfile(profileCacheKey(settings))?.let { cachedProfile ->
+                val profileImage = resolveProfileImageUrl(
+                    serverAddress = settings.address,
+                    image = cachedProfile.profileImage
+                )
+                val profileImageHeaders = buildProfileImageHeaders(
+                    settings = settings,
+                    image = cachedProfile.profileImage
+                )
+
+                _uiState.update {
+                    it.copy(
+                        profileName = cachedProfile.profileName,
+                        profileImage = profileImage,
+                        profileImageHeaders = profileImageHeaders
+                    )
+                }
+            }
+
             if (_uiState.value.bookmarks.isEmpty()) {
                 val cached = cacheManager.loadCachedBookmarks()
                 if (!cached.isNullOrEmpty()) {
@@ -78,7 +99,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
-            loadSavedItemsInternal(isRefresh = false)
+            loadSavedItemsInternal(isRefresh = false, preloadedSettings = settings)
         }
     }
 
@@ -86,7 +107,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadSavedItemsInternal(isRefresh = true)
     }
 
-    private fun loadSavedItemsInternal(isRefresh: Boolean) {
+    private fun loadSavedItemsInternal(isRefresh: Boolean, preloadedSettings: Settings? = null) {
         viewModelScope.launch {
             val hasExistingData = _uiState.value.bookmarks.isNotEmpty()
             _uiState.update {
@@ -97,7 +118,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
 
-            val settings = settingsDataStore.settingsFlow.first()
+            val settings = preloadedSettings ?: settingsDataStore.settingsFlow.first()
             repository.configure(settings)
 
             val (userResult, bookmarksResult) = coroutineScope {
@@ -124,26 +145,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             profileImageHeaders = profileImageHeaders
                         )
                     }
+
+                    launch {
+                        cacheManager.saveProfile(
+                            cacheKey = profileCacheKey(settings),
+                            profileName = userResult.data.name,
+                            profileImage = userResult.data.image
+                        )
+                    }
                 }
 
                 is ApiResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            profileName = null,
-                            profileImage = null,
-                            profileImageHeaders = emptyMap()
-                        )
-                    }
+                    Unit
                 }
 
                 is ApiResult.NetworkError -> {
-                    _uiState.update {
-                        it.copy(
-                            profileName = null,
-                            profileImage = null,
-                            profileImageHeaders = emptyMap()
-                        )
-                    }
+                    Unit
                 }
             }
 
@@ -446,6 +463,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         cachedProfileHeadersKey = cacheKey
         cachedProfileHeadersMap = headers
         return headers
+    }
+
+    private fun profileCacheKey(settings: Settings): String {
+        return "${settings.address.trimEnd('/')}|${settings.apiKeyId.orEmpty()}"
     }
 
     private fun isRemoteImage(image: String?): Boolean {
