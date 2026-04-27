@@ -27,6 +27,7 @@ import java.io.IOException
 import java.net.URI
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.cancellation.CancellationException
 
 sealed class ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>()
@@ -39,7 +40,12 @@ class KarabauRepository {
     private val _settingsFlow = MutableStateFlow<Settings?>(null)
     val settingsFlow: StateFlow<Settings?> = _settingsFlow.asStateFlow()
 
-    private val _apiServiceCache = ConcurrentHashMap<String, KarabauApiService>()
+    private data class ServiceCacheKey(
+        val address: String,
+        val customHeaders: Map<String, String>
+    )
+
+    private val _apiServiceCache = ConcurrentHashMap<ServiceCacheKey, KarabauApiService>()
 
     private val currentSettings: Settings?
         get() = _settingsFlow.value
@@ -48,7 +54,8 @@ class KarabauRepository {
         get() {
             val settings = currentSettings
                 ?: throw IllegalStateException("KarabauRepository not configured. Call configure() first.")
-            return _apiServiceCache.getOrPut(settings.address) {
+            val key = ServiceCacheKey(settings.address, settings.customHeaders)
+            return _apiServiceCache.getOrPut(key) {
                 RetrofitClient.getOrCreate(settings.address, settings.customHeaders)
             }
         }
@@ -73,6 +80,8 @@ class KarabauRepository {
     ): ApiResult<T> {
         return try {
             block()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: HttpException) {
             ApiResult.Error("HTTP_ERROR", e.message ?: "HTTP error")
         } catch (e: IOException) {
