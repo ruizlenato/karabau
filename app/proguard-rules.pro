@@ -24,6 +24,9 @@
 # annotations at compile time only — safe to suppress for R8.
 -dontwarn com.google.errorprone.annotations.**
 
+# Preserve generic signatures used by reflection-based serializers.
+-keepattributes Signature
+
 # Keep API model classes — Gson uses reflection to serialize/deserialize
 # field names, which R8 would otherwise rename or strip.
 -keep class com.ruizlenato.karabau.data.model.** { *; }

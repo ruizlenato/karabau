@@ -1,0 +1,106 @@
+package com.ruizlenato.karabau.data.local
+
+import android.content.Context
+import com.google.gson.Gson
+import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.model.TagItem
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import java.io.File
+
+class LocalCacheManager(context: Context) {
+
+    private val cacheDir = File(context.cacheDir, "data_cache").also { it.mkdirs() }
+    private val bookmarksFile = File(cacheDir, "bookmarks.json")
+    private val tagsFile = File(cacheDir, "tags.json")
+
+    private val mutex = Mutex()
+    private val gson = Gson()
+
+    suspend fun loadCachedBookmarks(): List<BookmarkItem>? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            if (!bookmarksFile.exists()) return@withLock null
+            runCatching {
+                val json = bookmarksFile.readText()
+                gson.fromJson(json, Array<CachedBookmarkItem>::class.java)
+                    ?.map { it.toDomain() }
+            }.getOrNull()
+        }
+    }
+
+    suspend fun saveBookmarks(bookmarks: List<BookmarkItem>) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            runCatching {
+                val tmp = File(bookmarksFile.parentFile, "${bookmarksFile.name}.tmp")
+                val cacheItems = bookmarks.map { CachedBookmarkItem.fromDomain(it) }
+                tmp.writeText(gson.toJson(cacheItems))
+                tmp.renameTo(bookmarksFile)
+            }
+        }
+    }
+
+    suspend fun loadCachedTags(): List<TagItem>? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            if (!tagsFile.exists()) return@withLock null
+            runCatching {
+                val json = tagsFile.readText()
+                gson.fromJson(json, Array<TagItem>::class.java)?.toList()
+            }.getOrNull()
+        }
+    }
+
+    suspend fun saveTags(tags: List<TagItem>) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            runCatching {
+                val tmp = File(tagsFile.parentFile, "${tagsFile.name}.tmp")
+                tmp.writeText(gson.toJson(tags))
+                tmp.renameTo(tagsFile)
+            }
+        }
+    }
+}
+
+private data class CachedBookmarkItem(
+    val id: String,
+    val title: String? = null,
+    val tags: List<String> = emptyList(),
+    val imageUrl: String? = null,
+    val subtitle: String? = null,
+    val linkUrl: String? = null,
+    val archived: Boolean = false,
+    val favourited: Boolean = false,
+    val createdAt: String
+) {
+    fun toDomain(): BookmarkItem {
+        return BookmarkItem(
+            id = id,
+            title = title,
+            tags = tags.toImmutableList(),
+            imageUrl = imageUrl,
+            subtitle = subtitle,
+            linkUrl = linkUrl,
+            archived = archived,
+            favourited = favourited,
+            createdAt = createdAt
+        )
+    }
+
+    companion object {
+        fun fromDomain(item: BookmarkItem): CachedBookmarkItem {
+            return CachedBookmarkItem(
+                id = item.id,
+                title = item.title,
+                tags = item.tags.toList(),
+                imageUrl = item.imageUrl,
+                subtitle = item.subtitle,
+                linkUrl = item.linkUrl,
+                archived = item.archived,
+                favourited = item.favourited,
+                createdAt = item.createdAt
+            )
+        }
+    }
+}

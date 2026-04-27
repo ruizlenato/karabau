@@ -95,7 +95,6 @@ fun HomeScreen(
         }
     }
 
-    // Observe bookmark_created flag from CreateBookmark navigation result
     LaunchedEffect(savedStateHandle) {
         savedStateHandle?.let { handle ->
             val flow = handle.getStateFlow("bookmark_created", false)

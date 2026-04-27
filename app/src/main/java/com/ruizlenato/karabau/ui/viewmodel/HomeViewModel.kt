@@ -3,6 +3,7 @@ package com.ruizlenato.karabau.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ruizlenato.karabau.data.local.LocalCacheManager
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.Settings
@@ -45,6 +46,7 @@ data class HomeUiState(
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val settingsDataStore = SettingsDataStore(application)
+    private val cacheManager = LocalCacheManager(application)
     private val repository = KarabauRepository()
 
     private var cachedProfileHeadersKey: Triple<String, String?, String>? = null
@@ -60,7 +62,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadSavedItems() {
         if (hasLoadedItems && _uiState.value.bookmarks.isNotEmpty()) return
-        loadSavedItemsInternal(isRefresh = false)
+        viewModelScope.launch {
+            if (_uiState.value.bookmarks.isEmpty()) {
+                val cached = cacheManager.loadCachedBookmarks()
+                if (!cached.isNullOrEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            bookmarks = cached,
+                            displayedBookmarks = computeDisplayedBookmarks(
+                                bookmarks = cached,
+                                query = it.searchQuery,
+                                isSearchActive = it.isSearchActive
+                            )
+                        )
+                    }
+                }
+            }
+            loadSavedItemsInternal(isRefresh = false)
+        }
     }
 
     fun refreshSavedItems() {
@@ -69,9 +88,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadSavedItemsInternal(isRefresh: Boolean) {
         viewModelScope.launch {
+            val hasExistingData = _uiState.value.bookmarks.isNotEmpty()
             _uiState.update {
                 it.copy(
-                    isLoading = if (isRefresh) it.isLoading else true,
+                    isLoading = if (isRefresh || hasExistingData) it.isLoading else true,
                     isRefreshing = isRefresh,
                     errorMessage = null
                 )
@@ -143,6 +163,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             errorMessage = null
                         )
                     }
+                    launch { cacheManager.saveBookmarks(bookmarksResult.data) }
                 }
 
                 is ApiResult.Error -> {
@@ -150,7 +171,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
+                            errorMessage = if ((isRefresh || hasExistingData) && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
                         )
                     }
                 }
@@ -160,7 +181,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            errorMessage = if (isRefresh && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
+                            errorMessage = if ((isRefresh || hasExistingData) && it.bookmarks.isNotEmpty()) null else bookmarksResult.message
                         )
                     }
                 }
@@ -202,7 +223,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadTags() {
         if (hasLoadedTags && _uiState.value.tags.isNotEmpty()) return
-        loadTagsInternal(isRefresh = false)
+        viewModelScope.launch {
+            if (_uiState.value.tags.isEmpty()) {
+                val cached = cacheManager.loadCachedTags()
+                if (!cached.isNullOrEmpty()) {
+                    _uiState.update { it.copy(tags = cached) }
+                }
+            }
+            loadTagsInternal(isRefresh = false)
+        }
     }
 
     fun refreshTags() {
@@ -211,9 +240,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadTagsInternal(isRefresh: Boolean) {
         viewModelScope.launch {
+            val hasExistingTags = _uiState.value.tags.isNotEmpty()
             _uiState.update {
                 it.copy(
-                    isTagsLoading = if (isRefresh) it.isTagsLoading else true,
+                    isTagsLoading = if (isRefresh || hasExistingTags) it.isTagsLoading else true,
                     isTagsRefreshing = isRefresh,
                     tagsErrorMessage = null
                 )
@@ -239,6 +269,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             tagsErrorMessage = null
                         )
                     }
+                    launch { cacheManager.saveTags(result.data) }
                 }
 
                 is ApiResult.Error -> {
@@ -246,7 +277,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isTagsLoading = false,
                             isTagsRefreshing = false,
-                            tagsErrorMessage = if (isRefresh && it.tags.isNotEmpty()) null else result.message
+                            tagsErrorMessage = if ((isRefresh || hasExistingTags) && it.tags.isNotEmpty()) null else result.message
                         )
                     }
                 }
@@ -256,7 +287,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isTagsLoading = false,
                             isTagsRefreshing = false,
-                            tagsErrorMessage = if (isRefresh && it.tags.isNotEmpty()) null else result.message
+                            tagsErrorMessage = if ((isRefresh || hasExistingTags) && it.tags.isNotEmpty()) null else result.message
                         )
                     }
                 }

@@ -42,11 +42,15 @@ class SettingsDataStore(private val context: Context) {
         private const val KEY_API_KEY_ID = "api_key_id"
     }
 
-    private val encryptedPrefs: SharedPreferences by lazy {
+    private val encryptedPrefs: SharedPreferences? by lazy {
+        getOrCreateEncryptedPrefs()
+    }
+
+    private fun createEncryptedPrefs(): SharedPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
             ENCRYPTED_PREFS_NAME,
             masterKey,
@@ -55,11 +59,22 @@ class SettingsDataStore(private val context: Context) {
         )
     }
 
+    private fun getOrCreateEncryptedPrefs(): SharedPreferences? {
+        return runCatching { createEncryptedPrefs() }
+            .recoverCatching {
+                context.deleteSharedPreferences(ENCRYPTED_PREFS_NAME)
+                createEncryptedPrefs()
+            }
+            .getOrNull()
+    }
+
     private fun getEncryptedApiKey(): String? =
-        encryptedPrefs.getString(KEY_API_KEY, null)?.takeIf { it.isNotBlank() }
+        runCatching { encryptedPrefs?.getString(KEY_API_KEY, null)?.takeIf { it.isNotBlank() } }
+            .getOrNull()
 
     private fun getEncryptedApiKeyId(): String? =
-        encryptedPrefs.getString(KEY_API_KEY_ID, null)?.takeIf { it.isNotBlank() }
+        runCatching { encryptedPrefs?.getString(KEY_API_KEY_ID, null)?.takeIf { it.isNotBlank() } }
+            .getOrNull()
 
     val settingsFlow: Flow<Settings> = context.dataStore.data.map { preferences ->
         val apiKey = getEncryptedApiKey()
@@ -84,14 +99,23 @@ class SettingsDataStore(private val context: Context) {
     }
 
     suspend fun updateSettings(settings: Settings) {
-        encryptedPrefs.edit()
-            .putString(KEY_API_KEY, settings.apiKey ?: "")
-            .putString(KEY_API_KEY_ID, settings.apiKeyId ?: "")
-            .apply()
+        val securePrefs = encryptedPrefs
+
+        securePrefs?.edit()
+            ?.putString(KEY_API_KEY, settings.apiKey ?: "")
+            ?.putString(KEY_API_KEY_ID, settings.apiKeyId ?: "")
+            ?.apply()
 
         context.dataStore.edit { preferences ->
-            preferences.remove(stringPreferencesKey("api_key"))
-            preferences.remove(stringPreferencesKey("api_key_id"))
+            if (securePrefs == null) {
+                settings.apiKey?.let { preferences[stringPreferencesKey("api_key")] = it }
+                    ?: preferences.remove(stringPreferencesKey("api_key"))
+                settings.apiKeyId?.let { preferences[stringPreferencesKey("api_key_id")] = it }
+                    ?: preferences.remove(stringPreferencesKey("api_key_id"))
+            } else {
+                preferences.remove(stringPreferencesKey("api_key"))
+                preferences.remove(stringPreferencesKey("api_key_id"))
+            }
             preferences[ADDRESS] = settings.address
             preferences[IMAGE_QUALITY] = settings.imageQuality
             preferences[THEME] = settings.theme.name
@@ -106,10 +130,10 @@ class SettingsDataStore(private val context: Context) {
     }
 
     suspend fun clearAuth() {
-        encryptedPrefs.edit()
-            .remove(KEY_API_KEY)
-            .remove(KEY_API_KEY_ID)
-            .apply()
+        encryptedPrefs?.edit()
+            ?.remove(KEY_API_KEY)
+            ?.remove(KEY_API_KEY_ID)
+            ?.apply()
 
         context.dataStore.edit { preferences ->
             preferences.remove(stringPreferencesKey("api_key"))
@@ -118,12 +142,27 @@ class SettingsDataStore(private val context: Context) {
     }
 
     suspend fun setApiKey(apiKey: String, apiKeyId: String? = null) {
-        encryptedPrefs.edit()
-            .putString(KEY_API_KEY, apiKey)
-            .apply {
+        val securePrefs = encryptedPrefs
+
+        securePrefs?.edit()
+            ?.putString(KEY_API_KEY, apiKey)
+            ?.apply {
                 apiKeyId?.let { putString(KEY_API_KEY_ID, it) }
             }
-            .apply()
+            ?.apply()
+
+        if (securePrefs == null) {
+            context.dataStore.edit { preferences ->
+                preferences[stringPreferencesKey("api_key")] = apiKey
+                apiKeyId?.let { preferences[stringPreferencesKey("api_key_id")] = it }
+                    ?: preferences.remove(stringPreferencesKey("api_key_id"))
+            }
+        } else {
+            context.dataStore.edit { preferences ->
+                preferences.remove(stringPreferencesKey("api_key"))
+                preferences.remove(stringPreferencesKey("api_key_id"))
+            }
+        }
     }
 
     suspend fun setServerAddress(address: String) {
