@@ -86,16 +86,20 @@ fun LoginScreen(
     var passwordFieldError by remember { mutableStateOf<String?>(null) }
     val isLoading = uiState.authState == AuthState.LOADING
     val textFieldColors = authOutlinedTextFieldColors()
-    val emailKeyboardOptions = KeyboardOptions(
-        keyboardType = KeyboardType.Email,
-        imeAction = ImeAction.Next,
-        platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
-    )
-    val passwordKeyboardOptions = KeyboardOptions(
-        keyboardType = KeyboardType.Password,
-        imeAction = ImeAction.Done,
-        platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
-    )
+    val emailKeyboardOptions = remember {
+        KeyboardOptions(
+            keyboardType = KeyboardType.Email,
+            imeAction = ImeAction.Next,
+            platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
+        )
+    }
+    val passwordKeyboardOptions = remember {
+        KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done,
+            platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
+        )
+    }
 
     fun submitLogin() {
         val emailBlank = uiState.email.isBlank()
