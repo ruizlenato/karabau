@@ -271,8 +271,11 @@ fun HomeScreen(
             bookmark = bookmark,
             onDismiss = { selectedBookmark = null },
             onOpenLink = { url ->
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                context.startActivity(intent)
+                val uri = Uri.parse(url)
+                if (uri.scheme == "http" || uri.scheme == "https") {
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    context.startActivity(intent)
+                }
             },
             onShare = { item ->
                 val shareText = item.linkUrl ?: item.title ?: item.id
