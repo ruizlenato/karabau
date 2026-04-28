@@ -1,5 +1,7 @@
 package com.ruizlenato.karabau.ui.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -12,12 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -147,7 +149,7 @@ fun BookmarkDetailBottomSheet(
                 ) {
                     OutlinedCard(
                         onClick = { onOpenLink(bookmark.linkUrl) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -168,27 +170,6 @@ fun BookmarkDetailBottomSheet(
                         }
                     }
 
-                    OutlinedCard(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(bookmark.linkUrl))
-                        },
-                        modifier = Modifier
-                            .height(56.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .height(56.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Copy Link",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
                 }
             }
 
@@ -203,93 +184,44 @@ fun BookmarkDetailBottomSheet(
                     .padding(top = 20.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledTonalIconButton(
-                        onClick = { onToggleFavourite(bookmark) },
-                        colors = if (bookmark.favourited) {
-                            IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            IconButtonDefaults.filledTonalIconButtonColors()
+                BottomSheetActionItem(
+                    icon = if (bookmark.favourited) Icons.Outlined.StarOutline else Icons.Outlined.StarBorder,
+                    label = if (bookmark.favourited) "Favourited" else "Favourite",
+                    contentColor = if (bookmark.favourited) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = { onToggleFavourite(bookmark) }
+                )
+
+                BottomSheetActionItem(
+                    icon = Icons.Outlined.ContentCopy,
+                    label = "Copy",
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = {
+                        bookmark.linkUrl?.let { url ->
+                            clipboardManager.setText(AnnotatedString(url))
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (bookmark.favourited) Icons.Default.Star else Icons.Outlined.StarBorder,
-                            contentDescription = if (bookmark.favourited) "Favourited" else "Favourite"
-                        )
                     }
-                    Text(
-                        text = if (bookmark.favourited) "Favourited" else "Favourite",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
+                )
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledTonalIconButton(
-                        onClick = { onShare(bookmark) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share"
-                        )
-                    }
-                    Text(
-                        text = "Share",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
+                BottomSheetActionItem(
+                    icon = Icons.Outlined.Share,
+                    label = "Share",
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = { onShare(bookmark) }
+                )
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledTonalIconButton(
-                        onClick = { onToggleArchived(bookmark) },
-                        colors = if (bookmark.archived) {
-                            IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        } else {
-                            IconButtonDefaults.filledTonalIconButtonColors()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Archive,
-                            contentDescription = if (bookmark.archived) "Archived" else "Archive"
-                        )
-                    }
-                    Text(
-                        text = if (bookmark.archived) "Archived" else "Archive",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
+                BottomSheetActionItem(
+                    icon = Icons.Outlined.Archive,
+                    label = if (bookmark.archived) "Archived" else "Archive",
+                    contentColor = if (bookmark.archived) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = { onToggleArchived(bookmark) }
+                )
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    FilledTonalIconButton(
-                        onClick = { onDelete(bookmark) },
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = "Delete"
-                        )
-                    }
-                    Text(
-                        text = "Delete",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
+                BottomSheetActionItem(
+                    icon = Icons.Outlined.DeleteOutline,
+                    label = "Delete",
+                    contentColor = MaterialTheme.colorScheme.error,
+                    onClick = { onDelete(bookmark) }
+                )
             }
 
             Row(
@@ -337,5 +269,35 @@ fun BookmarkDetailBottomSheet(
         }
 
         Spacer(modifier = Modifier.navigationBarsPadding())
+    }
+}
+
+@Composable
+private fun BottomSheetActionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    contentColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.height(22.dp)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor
+        )
     }
 }
