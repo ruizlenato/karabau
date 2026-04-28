@@ -335,12 +335,12 @@ private fun ListDetailContent(
         }
 
         PullToRefreshBox(
-            isRefreshing = isLoading,
+            isRefreshing = isLoading && bookmarks.isNotEmpty(),
             onRefresh = onRetry,
             state = pullToRefreshState,
             indicator = {
                 PullToRefreshExpressiveIndicator(
-                    isRefreshing = isLoading,
+                    isRefreshing = isLoading && bookmarks.isNotEmpty(),
                     state = pullToRefreshState
                 )
             }
