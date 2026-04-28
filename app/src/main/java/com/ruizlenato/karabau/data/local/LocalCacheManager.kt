@@ -63,6 +63,30 @@ class LocalCacheManager(context: Context) {
         }
     }
 
+    suspend fun loadCachedTagBookmarks(tagId: String): List<BookmarkItem>? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            loadCachedBookmarksFromFile(fileForKey("tag", tagId))
+        }
+    }
+
+    suspend fun saveTagBookmarks(tagId: String, bookmarks: List<BookmarkItem>) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            saveBookmarksToFile(fileForKey("tag", tagId), bookmarks)
+        }
+    }
+
+    suspend fun loadCachedListBookmarks(listId: String): List<BookmarkItem>? = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            loadCachedBookmarksFromFile(fileForKey("list", listId))
+        }
+    }
+
+    suspend fun saveListBookmarks(listId: String, bookmarks: List<BookmarkItem>) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            saveBookmarksToFile(fileForKey("list", listId), bookmarks)
+        }
+    }
+
     suspend fun loadCachedProfile(cacheKey: String): CachedProfileSummary? = withContext(Dispatchers.IO) {
         mutex.withLock {
             if (!profileFile.exists()) return@withLock null
@@ -89,6 +113,29 @@ class LocalCacheManager(context: Context) {
                 tmp.writeText(gson.toJson(payload))
                 tmp.renameTo(profileFile)
             }
+        }
+    }
+
+    private fun fileForKey(prefix: String, key: String): File {
+        val safeKey = key.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        return File(cacheDir, "${prefix}_$safeKey.json")
+    }
+
+    private fun loadCachedBookmarksFromFile(file: File): List<BookmarkItem>? {
+        if (!file.exists()) return null
+        return runCatching {
+            val json = file.readText()
+            gson.fromJson(json, Array<CachedBookmarkItem>::class.java)
+                ?.map { it.toDomain() }
+        }.getOrNull()
+    }
+
+    private fun saveBookmarksToFile(file: File, bookmarks: List<BookmarkItem>) {
+        runCatching {
+            val tmp = File(file.parentFile, "${file.name}.tmp")
+            val cacheItems = bookmarks.map { CachedBookmarkItem.fromDomain(it) }
+            tmp.writeText(gson.toJson(cacheItems))
+            tmp.renameTo(file)
         }
     }
 }
