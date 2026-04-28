@@ -73,6 +73,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var hasLoadedItems = false
     private var hasLoadedTags = false
     private var hasLoadedLists = false
+    private val pendingDeleteJobs = mutableMapOf<String, Job>()
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -520,6 +521,26 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteBookmarkWithUndo(bookmark: BookmarkItem) {
+        pendingDeleteJobs[bookmark.id]?.cancel()
+        applyBookmarkRemoval(bookmark.id)
+
+        pendingDeleteJobs[bookmark.id] = viewModelScope.launch {
+            delay(4500)
+
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+            repository.deleteBookmark(bookmark.id)
+
+            pendingDeleteJobs.remove(bookmark.id)
+        }
+    }
+
+    fun undoDeleteBookmark(bookmark: BookmarkItem) {
+        pendingDeleteJobs.remove(bookmark.id)?.cancel()
+        applyBookmarkRestore(bookmark)
+    }
+
     fun closeListDetail() {
         listDetailJob?.cancel()
         _uiState.update {
@@ -709,6 +730,59 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val bookmarksUpdated = state.bookmarks.filterNot { it.id == bookmarkId }
             val tagBookmarksUpdated = state.tagBookmarks.filterNot { it.id == bookmarkId }
             val listBookmarksUpdated = state.listBookmarks.filterNot { it.id == bookmarkId }
+
+            snapshotBookmarks = bookmarksUpdated
+            selectedTagId = state.selectedTag?.id
+            selectedListId = state.selectedList?.id
+            snapshotTagBookmarks = tagBookmarksUpdated
+            snapshotListBookmarks = listBookmarksUpdated
+
+            state.copy(
+                bookmarks = bookmarksUpdated,
+                displayedBookmarks = computeDisplayedBookmarks(
+                    bookmarks = bookmarksUpdated,
+                    query = state.searchQuery,
+                    isSearchActive = state.isSearchActive
+                ),
+                tagBookmarks = tagBookmarksUpdated,
+                listBookmarks = listBookmarksUpdated
+            )
+        }
+
+        viewModelScope.launch { cacheManager.saveBookmarks(snapshotBookmarks) }
+        selectedTagId?.let { tagId ->
+            viewModelScope.launch { cacheManager.saveTagBookmarks(tagId, snapshotTagBookmarks) }
+        }
+        selectedListId?.let { listId ->
+            viewModelScope.launch { cacheManager.saveListBookmarks(listId, snapshotListBookmarks) }
+        }
+    }
+
+    private fun applyBookmarkRestore(bookmark: BookmarkItem) {
+        var snapshotBookmarks: List<BookmarkItem> = emptyList()
+        var selectedTagId: String? = null
+        var selectedListId: String? = null
+        var snapshotTagBookmarks: List<BookmarkItem> = emptyList()
+        var snapshotListBookmarks: List<BookmarkItem> = emptyList()
+
+        _uiState.update { state ->
+            val bookmarksUpdated = if (state.bookmarks.any { it.id == bookmark.id }) {
+                state.bookmarks
+            } else {
+                listOf(bookmark) + state.bookmarks
+            }
+
+            val tagBookmarksUpdated = if (state.selectedTag != null && state.tagBookmarks.none { it.id == bookmark.id }) {
+                listOf(bookmark) + state.tagBookmarks
+            } else {
+                state.tagBookmarks
+            }
+
+            val listBookmarksUpdated = if (state.selectedList != null && state.listBookmarks.none { it.id == bookmark.id }) {
+                listOf(bookmark) + state.listBookmarks
+            } else {
+                state.listBookmarks
+            }
 
             snapshotBookmarks = bookmarksUpdated
             selectedTagId = state.selectedTag?.id
