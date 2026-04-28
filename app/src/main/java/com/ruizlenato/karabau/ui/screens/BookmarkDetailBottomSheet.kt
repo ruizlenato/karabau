@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -35,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,6 +61,7 @@ fun BookmarkDetailBottomSheet(
     onToggleFavourite: (BookmarkItem) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val clipboardManager = LocalClipboardManager.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -130,29 +134,57 @@ fun BookmarkDetailBottomSheet(
                 val displayUrl = bookmark.linkUrl
                     .removePrefix("https://")
                     .removePrefix("http://")
-                
-                OutlinedCard(
-                    onClick = { onOpenLink(bookmark.linkUrl) },
+
+                Row(
                     modifier = Modifier
                         .padding(top = 16.dp)
-                        .fillMaxWidth()
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    OutlinedCard(
+                        onClick = { onOpenLink(bookmark.linkUrl) },
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.OpenInBrowser,
-                            contentDescription = "Open Link",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = displayUrl,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.OpenInBrowser,
+                                contentDescription = "Open Link",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = displayUrl,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    OutlinedCard(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(bookmark.linkUrl))
+                        },
+                        modifier = Modifier
+                            .height(56.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .height(56.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy Link",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
