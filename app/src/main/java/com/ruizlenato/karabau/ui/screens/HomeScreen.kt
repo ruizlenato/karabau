@@ -29,6 +29,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
@@ -71,13 +74,26 @@ import androidx.core.net.toUri
 
 private data class HomeDestination(
     val label: String,
-    val icon: ImageVector
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
 )
 
 private val homeDestinations = listOf(
-    HomeDestination(label = "Home", icon = Icons.Default.Home),
-    HomeDestination(label = "Tags", icon = Icons.Default.LocalOffer),
-    HomeDestination(label = "Lists", icon = Icons.AutoMirrored.Filled.FormatListBulleted)
+    HomeDestination(
+        label = "Home",
+        selectedIcon = Icons.Default.Home,
+        unselectedIcon = Icons.Outlined.Home
+    ),
+    HomeDestination(
+        label = "Tags",
+        selectedIcon = Icons.Default.LocalOffer,
+        unselectedIcon = Icons.Outlined.LocalOffer
+    ),
+    HomeDestination(
+        label = "Lists",
+        selectedIcon = Icons.AutoMirrored.Filled.FormatListBulleted,
+        unselectedIcon = Icons.AutoMirrored.Outlined.FormatListBulleted
+    )
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -273,7 +289,11 @@ fun HomeScreen(
                                     onClick = { selectedTab = index },
                                     icon = {
                                         Icon(
-                                            imageVector = destination.icon,
+                                            imageVector = if (activeTab == index) {
+                                                destination.selectedIcon
+                                            } else {
+                                                destination.unselectedIcon
+                                            },
                                             contentDescription = destination.label
                                         )
                                     },
