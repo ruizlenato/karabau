@@ -365,6 +365,11 @@ fun HomeScreen(
                 homeViewModel.toggleBookmarkFavourite(item) { updated ->
                     selectedBookmark = updated
                 }
+            },
+            onToggleArchived = { item ->
+                homeViewModel.toggleBookmarkArchived(item) { updated ->
+                    selectedBookmark = updated
+                }
             }
         )
     }

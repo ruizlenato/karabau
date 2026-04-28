@@ -332,6 +332,30 @@ class KarabauRepository {
         }
     }
 
+    suspend fun setBookmarkArchived(bookmarkId: String, archived: Boolean): ApiResult<Unit> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val response = apiService.updateBookmark(
+                auth = settings.authHeader(),
+                request = TrpcInput(
+                    json = UpdateBookmarkRequest(
+                        bookmarkId = bookmarkId,
+                        archived = archived
+                    )
+                )
+            )
+
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to update bookmark" })
+            }
+        }
+    }
+
     suspend fun deleteBookmark(bookmarkId: String): ApiResult<Unit> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
         if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")

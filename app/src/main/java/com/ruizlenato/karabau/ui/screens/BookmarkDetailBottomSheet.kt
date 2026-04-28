@@ -15,10 +15,12 @@ import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +60,8 @@ fun BookmarkDetailBottomSheet(
     onOpenLink: (String) -> Unit,
     onShare: (BookmarkItem) -> Unit,
     onDelete: (BookmarkItem) -> Unit,
-    onToggleFavourite: (BookmarkItem) -> Unit
+    onToggleFavourite: (BookmarkItem) -> Unit,
+    onToggleArchived: (BookmarkItem) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val clipboardManager = LocalClipboardManager.current
@@ -189,6 +192,11 @@ fun BookmarkDetailBottomSheet(
                 }
             }
 
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -231,6 +239,31 @@ fun BookmarkDetailBottomSheet(
                     }
                     Text(
                         text = "Share",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    FilledTonalIconButton(
+                        onClick = { onToggleArchived(bookmark) },
+                        colors = if (bookmark.archived) {
+                            IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        } else {
+                            IconButtonDefaults.filledTonalIconButtonColors()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Archive,
+                            contentDescription = if (bookmark.archived) "Archived" else "Archive"
+                        )
+                    }
+                    Text(
+                        text = if (bookmark.archived) "Archived" else "Archive",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 6.dp)

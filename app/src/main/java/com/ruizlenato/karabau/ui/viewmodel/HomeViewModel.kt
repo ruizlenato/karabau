@@ -479,6 +479,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleBookmarkArchived(
+        bookmark: BookmarkItem,
+        onUpdated: (BookmarkItem) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+
+            val updatedBookmark = bookmark.copy(archived = !bookmark.archived)
+            when (repository.setBookmarkArchived(bookmark.id, updatedBookmark.archived)) {
+                is ApiResult.Success -> {
+                    applyBookmarkUpdate(updatedBookmark)
+                    onUpdated(updatedBookmark)
+                }
+
+                is ApiResult.Error -> Unit
+                is ApiResult.NetworkError -> Unit
+            }
+        }
+    }
+
     fun deleteBookmark(
         bookmark: BookmarkItem,
         onDeleted: () -> Unit = {}
@@ -630,6 +651,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             val bookmarksUpdated = state.bookmarks.map { current ->
                 if (current.id == updatedBookmark.id) updatedBookmark else current
+            }.let { items ->
+                if (updatedBookmark.archived) items.filterNot { it.id == updatedBookmark.id } else items
             }
 
             val tagBookmarksUpdated = state.tagBookmarks.map { current ->

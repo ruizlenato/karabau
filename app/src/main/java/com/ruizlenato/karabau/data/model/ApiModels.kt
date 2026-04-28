@@ -44,7 +44,8 @@ data class CreateBookmarkRequest(
 @Serializable
 data class UpdateBookmarkRequest(
     val bookmarkId: String,
-    val favourited: Boolean? = null
+    val favourited: Boolean? = null,
+    val archived: Boolean? = null
 )
 
 @Serializable
