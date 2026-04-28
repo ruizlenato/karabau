@@ -4,7 +4,9 @@ import com.ruizlenato.karabau.data.model.ExchangeKeyRequest
 import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
 import com.ruizlenato.karabau.data.model.HealthCheckResponse
 import com.ruizlenato.karabau.data.model.CreateBookmarkRequest
+import com.ruizlenato.karabau.data.model.DeleteBookmarkRequest
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
+import com.ruizlenato.karabau.data.model.UpdateBookmarkRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
 import okhttp3.ResponseBody
@@ -37,6 +39,18 @@ interface KarabauApiService {
     suspend fun createBookmark(
         @Header("Authorization") auth: String,
         @Body request: TrpcInput<CreateBookmarkRequest>
+    ): Response<ResponseBody>
+
+    @POST("api/trpc/bookmarks.updateBookmark")
+    suspend fun updateBookmark(
+        @Header("Authorization") auth: String,
+        @Body request: TrpcInput<UpdateBookmarkRequest>
+    ): Response<ResponseBody>
+
+    @POST("api/trpc/bookmarks.deleteBookmark")
+    suspend fun deleteBookmark(
+        @Header("Authorization") auth: String,
+        @Body request: TrpcInput<DeleteBookmarkRequest>
     ): Response<ResponseBody>
 
     @GET("api/trpc/bookmarks.getBookmarks")

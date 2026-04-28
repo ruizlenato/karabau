@@ -42,6 +42,17 @@ data class CreateBookmarkRequest(
 )
 
 @Serializable
+data class UpdateBookmarkRequest(
+    val bookmarkId: String,
+    val favourited: Boolean? = null
+)
+
+@Serializable
+data class DeleteBookmarkRequest(
+    val bookmarkId: String
+)
+
+@Serializable
 data class ApiError(
     val code: String? = null,
     val message: String? = null

@@ -458,6 +458,47 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    fun toggleBookmarkFavourite(
+        bookmark: BookmarkItem,
+        onUpdated: (BookmarkItem) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+
+            val updatedBookmark = bookmark.copy(favourited = !bookmark.favourited)
+            when (repository.setBookmarkFavourited(bookmark.id, updatedBookmark.favourited)) {
+                is ApiResult.Success -> {
+                    applyBookmarkUpdate(updatedBookmark)
+                    onUpdated(updatedBookmark)
+                }
+
+                is ApiResult.Error -> Unit
+                is ApiResult.NetworkError -> Unit
+            }
+        }
+    }
+
+    fun deleteBookmark(
+        bookmark: BookmarkItem,
+        onDeleted: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+
+            when (repository.deleteBookmark(bookmark.id)) {
+                is ApiResult.Success -> {
+                    applyBookmarkRemoval(bookmark.id)
+                    onDeleted()
+                }
+
+                is ApiResult.Error -> Unit
+                is ApiResult.NetworkError -> Unit
+            }
+        }
+    }
+
     fun closeListDetail() {
         listDetailJob?.cancel()
         _uiState.update {
@@ -566,6 +607,74 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    private fun applyBookmarkUpdate(updatedBookmark: BookmarkItem) {
+        var snapshotBookmarks: List<BookmarkItem> = emptyList()
+
+        _uiState.update { state ->
+            val isFavoritesListOpen = state.selectedList?.id == FAVORITES_LIST_ID
+
+            val bookmarksUpdated = state.bookmarks.map { current ->
+                if (current.id == updatedBookmark.id) updatedBookmark else current
+            }
+
+            val tagBookmarksUpdated = state.tagBookmarks.map { current ->
+                if (current.id == updatedBookmark.id) updatedBookmark else current
+            }
+
+            val listBookmarksUpdated = state.listBookmarks
+                .map { current -> if (current.id == updatedBookmark.id) updatedBookmark else current }
+                .let { items ->
+                    if (isFavoritesListOpen && !updatedBookmark.favourited) {
+                        items.filterNot { it.id == updatedBookmark.id }
+                    } else {
+                        items
+                    }
+                }
+
+            snapshotBookmarks = bookmarksUpdated
+
+            state.copy(
+                bookmarks = bookmarksUpdated,
+                displayedBookmarks = computeDisplayedBookmarks(
+                    bookmarks = bookmarksUpdated,
+                    query = state.searchQuery,
+                    isSearchActive = state.isSearchActive
+                ),
+                tagBookmarks = tagBookmarksUpdated,
+                listBookmarks = listBookmarksUpdated
+            )
+        }
+
+        if (snapshotBookmarks.isNotEmpty()) {
+            viewModelScope.launch { cacheManager.saveBookmarks(snapshotBookmarks) }
+        }
+    }
+
+    private fun applyBookmarkRemoval(bookmarkId: String) {
+        var snapshotBookmarks: List<BookmarkItem> = emptyList()
+
+        _uiState.update { state ->
+            val bookmarksUpdated = state.bookmarks.filterNot { it.id == bookmarkId }
+            val tagBookmarksUpdated = state.tagBookmarks.filterNot { it.id == bookmarkId }
+            val listBookmarksUpdated = state.listBookmarks.filterNot { it.id == bookmarkId }
+
+            snapshotBookmarks = bookmarksUpdated
+
+            state.copy(
+                bookmarks = bookmarksUpdated,
+                displayedBookmarks = computeDisplayedBookmarks(
+                    bookmarks = bookmarksUpdated,
+                    query = state.searchQuery,
+                    isSearchActive = state.isSearchActive
+                ),
+                tagBookmarks = tagBookmarksUpdated,
+                listBookmarks = listBookmarksUpdated
+            )
+        }
+
+        viewModelScope.launch { cacheManager.saveBookmarks(snapshotBookmarks) }
     }
 
     private fun loadSelectedTagContent() {

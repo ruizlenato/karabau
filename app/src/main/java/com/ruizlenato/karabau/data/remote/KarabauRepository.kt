@@ -5,11 +5,13 @@ import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.BookmarkCursor
 import com.ruizlenato.karabau.data.model.CreateBookmarkRequest
+import com.ruizlenato.karabau.data.model.DeleteBookmarkRequest
 import com.ruizlenato.karabau.data.model.GetBookmarksResponse
 import com.ruizlenato.karabau.data.model.SavedListItem
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagItem
+import com.ruizlenato.karabau.data.model.UpdateBookmarkRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyResponse
 import com.ruizlenato.karabau.data.model.WhoAmIResponse
@@ -303,6 +305,51 @@ class KarabauRepository {
             }
 
             ApiResult.Success(allItems)
+        }
+    }
+
+    suspend fun setBookmarkFavourited(bookmarkId: String, favourited: Boolean): ApiResult<Unit> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val response = apiService.updateBookmark(
+                auth = settings.authHeader(),
+                request = TrpcInput(
+                    json = UpdateBookmarkRequest(
+                        bookmarkId = bookmarkId,
+                        favourited = favourited
+                    )
+                )
+            )
+
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to update bookmark" })
+            }
+        }
+    }
+
+    suspend fun deleteBookmark(bookmarkId: String): ApiResult<Unit> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val response = apiService.deleteBookmark(
+                auth = settings.authHeader(),
+                request = TrpcInput(
+                    json = DeleteBookmarkRequest(bookmarkId = bookmarkId)
+                )
+            )
+
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to delete bookmark" })
+            }
         }
     }
 

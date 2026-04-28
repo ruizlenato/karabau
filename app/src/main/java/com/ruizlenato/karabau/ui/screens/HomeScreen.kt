@@ -356,8 +356,16 @@ fun HomeScreen(
                 }
                 context.startActivity(Intent.createChooser(shareIntent, null))
             },
-            onDelete = { /* TODO: implement delete */ },
-            onToggleFavourite = { /* TODO: implement toggle favourite */ }
+            onDelete = { item ->
+                homeViewModel.deleteBookmark(item) {
+                    selectedBookmark = null
+                }
+            },
+            onToggleFavourite = { item ->
+                homeViewModel.toggleBookmarkFavourite(item) { updated ->
+                    selectedBookmark = updated
+                }
+            }
         )
     }
 }
