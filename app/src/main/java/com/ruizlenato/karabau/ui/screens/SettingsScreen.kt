@@ -83,7 +83,7 @@ fun SettingsContent(
                     Text(
                         "Settings",
                         modifier = Modifier.padding(start = 10.dp),
-                        style = MaterialTheme.typography.headlineMedium
+                        style = MaterialTheme.typography.headlineLarge
                     )
                 },
                 navigationIcon = {

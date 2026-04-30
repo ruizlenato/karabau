@@ -344,11 +344,5 @@ private fun MediumFlexibleTopAppBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        Text(
-            text = "Manage and browse your tags",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
-        )
     }
 }
