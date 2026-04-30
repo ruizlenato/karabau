@@ -232,9 +232,9 @@ fun SettingsContent(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentSettings.address, currentSettings.apiKey, currentSettings.apiKeyId) {
         val current = currentSettings
-        if (current.apiKey.isNullOrBlank()) return@LaunchedEffect
+        if (current.address.isBlank() || current.apiKey.isNullOrBlank()) return@LaunchedEffect
 
         val repo = KarabauRepository().apply { configure(current) }
         when (val remote = repo.getArchiveDisplayBehaviour()) {
