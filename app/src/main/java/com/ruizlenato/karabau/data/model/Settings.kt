@@ -15,10 +15,15 @@ data class Settings(
     val showNotes: Boolean = false,
     val keepScreenOnWhileReading: Boolean = false,
     val customHeaders: Map<String, String> = emptyMap(),
+    val archiveDisplayBehaviour: ArchiveDisplayBehaviour = ArchiveDisplayBehaviour.HIDE,
     val readerFontSize: Int? = null,
     val readerLineHeight: Float? = null,
     val readerFontFamily: String? = null
 )
+
+enum class ArchiveDisplayBehaviour {
+    SHOW, HIDE
+}
 
 enum class Theme {
     LIGHT, DARK, SYSTEM

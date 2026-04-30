@@ -14,6 +14,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.ruizlenato.karabau.data.model.BookmarkView
 import com.ruizlenato.karabau.data.model.DEFAULT_SERVER_ADDRESS
+import com.ruizlenato.karabau.data.model.ArchiveDisplayBehaviour
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.Theme
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +34,7 @@ class SettingsDataStore(private val context: Context) {
         private val SHOW_NOTES = booleanPreferencesKey("show_notes")
         private val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on_while_reading")
         private val CUSTOM_HEADERS = stringPreferencesKey("custom_headers")
+        private val ARCHIVE_DISPLAY_BEHAVIOUR = stringPreferencesKey("archive_display_behaviour")
         private val READER_FONT_SIZE = intPreferencesKey("reader_font_size")
         private val READER_LINE_HEIGHT = floatPreferencesKey("reader_line_height")
         private val READER_FONT_FAMILY = stringPreferencesKey("reader_font_family")
@@ -92,6 +94,9 @@ class SettingsDataStore(private val context: Context) {
             showNotes = preferences[SHOW_NOTES] ?: false,
             keepScreenOnWhileReading = preferences[KEEP_SCREEN_ON] ?: false,
             customHeaders = runCatching { preferences[CUSTOM_HEADERS]?.let { Json.decodeFromString<Map<String, String>>(it) } }.getOrNull() ?: emptyMap(),
+            archiveDisplayBehaviour = runCatching {
+                preferences[ARCHIVE_DISPLAY_BEHAVIOUR]?.let { ArchiveDisplayBehaviour.valueOf(it) }
+            }.getOrNull() ?: ArchiveDisplayBehaviour.HIDE,
             readerFontSize = preferences[READER_FONT_SIZE],
             readerLineHeight = preferences[READER_LINE_HEIGHT],
             readerFontFamily = preferences[READER_FONT_FAMILY]
@@ -123,6 +128,7 @@ class SettingsDataStore(private val context: Context) {
             preferences[SHOW_NOTES] = settings.showNotes
             preferences[KEEP_SCREEN_ON] = settings.keepScreenOnWhileReading
             preferences[CUSTOM_HEADERS] = Json.encodeToString(settings.customHeaders)
+            preferences[ARCHIVE_DISPLAY_BEHAVIOUR] = settings.archiveDisplayBehaviour.name
             settings.readerFontSize?.let { preferences[READER_FONT_SIZE] = it }
             settings.readerLineHeight?.let { preferences[READER_LINE_HEIGHT] = it }
             settings.readerFontFamily?.let { preferences[READER_FONT_FAMILY] = it }

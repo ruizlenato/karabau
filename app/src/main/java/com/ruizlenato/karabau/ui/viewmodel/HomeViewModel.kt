@@ -130,6 +130,26 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun syncArchiveDisplayBehaviourAfterInitialLoad() {
+        viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+            repository.configure(settings)
+
+            when (val remote = repository.getArchiveDisplayBehaviour()) {
+                is ApiResult.Success -> {
+                    if (settings.archiveDisplayBehaviour != remote.data) {
+                        settingsDataStore.updateSettings(
+                            settings.copy(archiveDisplayBehaviour = remote.data)
+                        )
+                    }
+                }
+
+                is ApiResult.Error -> Unit
+                is ApiResult.NetworkError -> Unit
+            }
+        }
+    }
+
     private suspend fun loadSavedItemsInternal(isRefresh: Boolean, preloadedSettings: Settings? = null) {
         val hasExistingData = _uiState.value.bookmarks.isNotEmpty()
         _uiState.update {

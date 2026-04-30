@@ -122,6 +122,12 @@ fun HomeScreen(
         }
     }
 
+    LaunchedEffect(homeUiState.hasCompletedInitialBookmarksLoad) {
+        if (homeUiState.hasCompletedInitialBookmarksLoad) {
+            homeViewModel.syncArchiveDisplayBehaviourAfterInitialLoad()
+        }
+    }
+
     LaunchedEffect(savedStateHandle) {
         savedStateHandle?.let { handle ->
             val flow = handle.getStateFlow("bookmark_created", false)

@@ -3,6 +3,8 @@ package com.ruizlenato.karabau.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.VolunteerActivism
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,20 +28,32 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.core.net.toUri
 import com.ruizlenato.karabau.R
+import com.ruizlenato.karabau.data.local.SettingsDataStore
+import com.ruizlenato.karabau.data.model.ArchiveDisplayBehaviour
+import com.ruizlenato.karabau.data.model.Settings
+import com.ruizlenato.karabau.data.remote.KarabauRepository
+import com.ruizlenato.karabau.data.remote.ApiResult
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +71,9 @@ fun SettingsContent(
             "1.0"
         }
     }
+    val settingsDataStore = remember(context) { SettingsDataStore(context.applicationContext) }
+    val currentSettings by settingsDataStore.settingsFlow.collectAsState(initial = Settings())
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -109,6 +127,41 @@ fun SettingsContent(
                     )
                 },
                 title = { Text("Logout", color = MaterialTheme.colorScheme.error) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SettingsCategory(title = "Bookmarks")
+            Spacer(modifier = Modifier.height(2.dp))
+            SegmentedItem(
+                position = SegmentedPosition.SINGLE,
+                icon = { Icon(Icons.Outlined.Archive, contentDescription = null) },
+                title = { Text("Archived Favorites") },
+                subtitle = {
+                    Text("Show archived favorites in tags and lists")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = currentSettings.archiveDisplayBehaviour == ArchiveDisplayBehaviour.SHOW,
+                        onCheckedChange = { checked ->
+                            val value = if (checked) {
+                                ArchiveDisplayBehaviour.SHOW
+                            } else {
+                                ArchiveDisplayBehaviour.HIDE
+                            }
+
+                            if (currentSettings.archiveDisplayBehaviour != value) {
+                                scope.launch {
+                                    val updated = currentSettings.copy(archiveDisplayBehaviour = value)
+                                    settingsDataStore.updateSettings(updated)
+
+                                    val repo = KarabauRepository().apply { configure(updated) }
+                                    repo.updateArchiveDisplayBehaviour(value)
+                                }
+                            }
+                        }
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -178,6 +231,25 @@ fun SettingsContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+    LaunchedEffect(Unit) {
+        val current = currentSettings
+        if (current.apiKey.isNullOrBlank()) return@LaunchedEffect
+
+        val repo = KarabauRepository().apply { configure(current) }
+        when (val remote = repo.getArchiveDisplayBehaviour()) {
+            is ApiResult.Success -> {
+                if (current.archiveDisplayBehaviour != remote.data) {
+                    settingsDataStore.updateSettings(
+                        current.copy(archiveDisplayBehaviour = remote.data)
+                    )
+                }
+            }
+
+            is ApiResult.Error -> Unit
+            is ApiResult.NetworkError -> Unit
+        }
+    }
 }
 
 @Composable
@@ -203,7 +275,8 @@ private fun SegmentedItem(
     onClick: (() -> Unit)? = null,
     icon: @Composable (() -> Unit)? = null,
     title: @Composable () -> Unit,
-    subtitle: @Composable (() -> Unit)? = null
+    subtitle: @Composable (() -> Unit)? = null,
+    trailingContent: @Composable (() -> Unit)? = null
 ) {
     val shape = when (position) {
         SegmentedPosition.TOP -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
@@ -223,6 +296,7 @@ private fun SegmentedItem(
             leadingContent = icon,
             headlineContent = title,
             supportingContent = subtitle,
+            trailingContent = trailingContent,
             colors = ListItemDefaults.colors(
                 containerColor = Color.Transparent
             )

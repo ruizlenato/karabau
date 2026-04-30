@@ -10,6 +10,7 @@ import com.ruizlenato.karabau.data.model.GetBookmarksResponse
 import com.ruizlenato.karabau.data.model.SavedListItem
 import com.ruizlenato.karabau.data.model.RevokeKeyRequest
 import com.ruizlenato.karabau.data.model.Settings
+import com.ruizlenato.karabau.data.model.ArchiveDisplayBehaviour
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.model.UpdateBookmarkRequest
 import com.ruizlenato.karabau.data.model.ValidateKeyRequest
@@ -373,6 +374,63 @@ class KarabauRepository {
             } else {
                 val errorBody = response.errorBody()?.string().orEmpty()
                 ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to delete bookmark" })
+            }
+        }
+    }
+
+    suspend fun updateArchiveDisplayBehaviour(behaviour: ArchiveDisplayBehaviour): ApiResult<Unit> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val payload = mapOf(
+                "archiveDisplayBehaviour" to behaviour.name.lowercase()
+            )
+
+            val response = apiService.updateUserSettings(
+                auth = settings.authHeader(),
+                batch = "1",
+                request = TrpcBatchInput(
+                    zero = TrpcInput(
+                        json = payload
+                    )
+                )
+            )
+
+            if (response.isSuccessful) {
+                ApiResult.Success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                ApiResult.Error("FAILED", errorBody.ifBlank { "Failed to update settings" })
+            }
+        }
+    }
+
+    suspend fun getArchiveDisplayBehaviour(): ApiResult<ArchiveDisplayBehaviour> {
+        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
+
+        return safeApiCall {
+            val inputJson = JSONObject().apply {
+                put("0", JSONObject().apply {
+                    put("json", JSONObject.NULL)
+                    put("meta", JSONObject().apply {
+                        put("values", org.json.JSONArray().apply { put("undefined") })
+                    })
+                })
+            }.toString()
+
+            val response = apiService.getUserSettings(
+                auth = settings.authHeader(),
+                batch = "1",
+                input = inputJson
+            )
+
+            handleBatchGetResponse(response, "load user settings") { json ->
+                when (json.optStringOrNull("archiveDisplayBehaviour")?.lowercase()) {
+                    "show" -> ArchiveDisplayBehaviour.SHOW
+                    else -> ArchiveDisplayBehaviour.HIDE
+                }
             }
         }
     }

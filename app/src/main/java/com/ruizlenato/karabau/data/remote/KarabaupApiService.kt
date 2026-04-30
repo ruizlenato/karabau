@@ -16,6 +16,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
+import com.google.gson.annotations.SerializedName
 
 interface KarabauApiService {
 
@@ -51,6 +52,20 @@ interface KarabauApiService {
     suspend fun deleteBookmark(
         @Header("Authorization") auth: String,
         @Body request: TrpcInput<DeleteBookmarkRequest>
+    ): Response<ResponseBody>
+
+    @POST("api/trpc/users.updateSettings")
+    suspend fun updateUserSettings(
+        @Header("Authorization") auth: String,
+        @Query("batch") batch: String,
+        @Body request: TrpcBatchInput<Map<String, String>>
+    ): Response<ResponseBody>
+
+    @GET("api/trpc/users.settings")
+    suspend fun getUserSettings(
+        @Header("Authorization") auth: String,
+        @Query("batch") batch: String,
+        @Query("input") input: String
     ): Response<ResponseBody>
 
     @GET("api/trpc/bookmarks.getBookmarks")
@@ -102,6 +117,11 @@ interface KarabauApiService {
 
 data class TrpcInput<T>(
     val json: T
+)
+
+data class TrpcBatchInput<T>(
+    @SerializedName("0")
+    val zero: TrpcInput<T>
 )
 
 data class TrpcResponse<T>(
