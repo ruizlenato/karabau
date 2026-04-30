@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.LocalCacheManager
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.model.ArchiveDisplayBehaviour
 import com.ruizlenato.karabau.data.model.SavedListItem
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagItem
@@ -584,10 +585,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val selectedList = _uiState.value.selectedList ?: return
 
         listDetailJob = viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+            val archivedFilter = archivedFilterFor(settings)
+
             if (_uiState.value.listBookmarks.isEmpty()) {
                 cacheManager.loadCachedListBookmarks(selectedList.id)?.takeIf { it.isNotEmpty() }?.let { cached ->
                     if (_uiState.value.selectedList?.id == selectedList.id) {
-                        _uiState.update { it.copy(listBookmarks = cached) }
+                        _uiState.update { it.copy(listBookmarks = applyArchiveFilter(cached, archivedFilter)) }
                     }
                 }
             }
@@ -599,12 +603,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
 
-            val settings = settingsDataStore.settingsFlow.first()
             repository.configure(settings)
 
             val (listResult, bookmarksResult) = if (selectedList.id == FAVORITES_LIST_ID) {
                 ApiResult.Success(selectedList) to repository.getAllFavouritedBookmarks(
-                    archived = false,
+                    archived = archivedFilter,
                     limit = 20
                 )
             } else {
@@ -612,7 +615,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     val listDeferred = async { repository.getList(selectedList.id) }
                     val bookmarksDeferred = async {
                         repository.getAllBookmarksByList(
-                            archived = null,
+                            archived = archivedFilter,
                             listId = selectedList.id,
                             limit = 20
                         )
@@ -649,10 +652,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             when (bookmarksResult) {
                 is ApiResult.Success -> {
+                    val filteredBookmarks = applyArchiveFilter(bookmarksResult.data, archivedFilter)
                     _uiState.update {
                         it.copy(
                             isListBookmarksLoading = false,
-                            listBookmarks = bookmarksResult.data,
+                            listBookmarks = filteredBookmarks,
                             listBookmarksErrorMessage = null
                         )
                     }
@@ -835,10 +839,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val selectedTag = _uiState.value.selectedTag ?: return
 
         tagDetailJob = viewModelScope.launch {
+            val settings = settingsDataStore.settingsFlow.first()
+            val archivedFilter = archivedFilterFor(settings)
+
             if (_uiState.value.tagBookmarks.isEmpty()) {
                 cacheManager.loadCachedTagBookmarks(selectedTag.id)?.takeIf { it.isNotEmpty() }?.let { cached ->
                     if (_uiState.value.selectedTag?.id == selectedTag.id) {
-                        _uiState.update { it.copy(tagBookmarks = cached) }
+                        _uiState.update { it.copy(tagBookmarks = applyArchiveFilter(cached, archivedFilter)) }
                     }
                 }
             }
@@ -850,14 +857,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
 
-            val settings = settingsDataStore.settingsFlow.first()
             repository.configure(settings)
 
             val (tagResult, bookmarksResult) = coroutineScope {
                 val tagDeferred = async { repository.getTag(selectedTag.id) }
                 val bookmarksDeferred = async {
                     repository.getAllBookmarksByTag(
-                        archived = null,
+                        archived = archivedFilter,
                         tagId = selectedTag.id,
                         limit = 20
                     )
@@ -895,10 +901,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
             when (bookmarksResult) {
                 is ApiResult.Success -> {
+                    val filteredBookmarks = applyArchiveFilter(bookmarksResult.data, archivedFilter)
                     _uiState.update {
                         it.copy(
                             isTagBookmarksLoading = false,
-                            tagBookmarks = bookmarksResult.data,
+                            tagBookmarks = filteredBookmarks,
                             tagBookmarksErrorMessage = null
                         )
                     }
@@ -962,6 +969,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun profileCacheKey(settings: Settings): String {
         return "${settings.address.trimEnd('/')}|${settings.apiKeyId.orEmpty()}"
+    }
+
+    private fun archivedFilterFor(settings: Settings): Boolean? {
+        return when (settings.archiveDisplayBehaviour) {
+            ArchiveDisplayBehaviour.HIDE -> false
+            ArchiveDisplayBehaviour.SHOW -> null
+        }
+    }
+
+    private fun applyArchiveFilter(bookmarks: List<BookmarkItem>, archivedFilter: Boolean?): List<BookmarkItem> {
+        return when (archivedFilter) {
+            false -> bookmarks.filterNot { it.archived }
+            true -> bookmarks.filter { it.archived }
+            null -> bookmarks
+        }
     }
 
     private fun isRemoteImage(image: String?): Boolean {
