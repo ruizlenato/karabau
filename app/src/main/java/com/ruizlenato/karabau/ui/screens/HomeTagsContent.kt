@@ -35,8 +35,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.TagItem
 
@@ -74,7 +76,7 @@ internal fun TagsContent(
 
     Column(modifier = Modifier.fillMaxSize()) {
         MediumFlexibleTopAppBar(
-            title = "Tags",
+            title = stringResource(R.string.tags_tab),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
@@ -95,7 +97,7 @@ internal fun TagsContent(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Failed to load tags",
+                            text = stringResource(R.string.failed_load_tags),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -103,7 +105,7 @@ internal fun TagsContent(
                             onClick = onRefresh,
                             modifier = Modifier.padding(top = 12.dp)
                         ) {
-                            Text("Retry")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
@@ -116,12 +118,12 @@ internal fun TagsContent(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "No Tags",
+                            text = stringResource(R.string.no_tags),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "Tags will appear as you organize your bookmarks",
+                            text = stringResource(R.string.tags_help_text),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp)
@@ -234,7 +236,7 @@ private fun TagDetailContent(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = stringResource(R.string.back)
                 )
             }
             Text(
@@ -274,7 +276,7 @@ private fun TagDetailContent(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Failed to load bookmarks",
+                            text = stringResource(R.string.failed_load_bookmarks),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -282,7 +284,7 @@ private fun TagDetailContent(
                             onClick = onRetry,
                             modifier = Modifier.padding(top = 12.dp)
                         ) {
-                            Text("Retry")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
@@ -294,7 +296,7 @@ private fun TagDetailContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No bookmarks",
+                        text = stringResource(R.string.no_bookmarks),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

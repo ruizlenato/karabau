@@ -52,10 +52,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.ruizlenato.karabau.R
 
 @Composable
 internal fun HomeTopBar(
@@ -177,7 +179,7 @@ private fun ActiveSearchBar(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -188,7 +190,7 @@ private fun ActiveSearchBar(
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(focusRequester),
-                placeholder = { Text("Search your bookmarks") },
+                placeholder = { Text(stringResource(R.string.search_bookmarks_placeholder)) },
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -212,7 +214,7 @@ private fun ActiveSearchBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear",
+                        contentDescription = stringResource(R.string.clear),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -259,7 +261,7 @@ private fun CompactSearchBar(
                 )
 
                 Text(
-                    text = query.ifEmpty { "Search your bookmarks" },
+                    text = query.ifEmpty { stringResource(R.string.search_bookmarks_placeholder) },
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (query.isEmpty()) {
                         MaterialTheme.colorScheme.onSurfaceVariant

@@ -36,8 +36,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.SavedListItem
 
@@ -77,7 +79,7 @@ internal fun ListsContent(
 
     Column(modifier = Modifier.fillMaxSize()) {
         ListsTopAppBar(
-            title = "Lists",
+            title = stringResource(R.string.lists_tab),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
@@ -98,7 +100,7 @@ internal fun ListsContent(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Failed to load lists",
+                            text = stringResource(R.string.failed_load_lists),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -106,7 +108,7 @@ internal fun ListsContent(
                             onClick = onRefresh,
                             modifier = Modifier.padding(top = 12.dp)
                         ) {
-                            Text("Retry")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
@@ -119,12 +121,12 @@ internal fun ListsContent(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "No Lists",
+                            text = stringResource(R.string.no_lists),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "Lists will appear as you organize your bookmarks",
+                            text = stringResource(R.string.lists_help_text),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp)
@@ -188,13 +190,13 @@ internal fun ListsContent(
                                 ) {
                                     Column {
                                         Text(
-                                            text = "Favorites",
+                                            text = stringResource(R.string.favorites),
                                             style = MaterialTheme.typography.bodyLarge,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = "Your favourited bookmarks",
+                                            text = stringResource(R.string.favourited_bookmarks_desc),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             style = MaterialTheme.typography.bodySmall,
@@ -321,7 +323,7 @@ private fun ListDetailContent(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = stringResource(R.string.back)
                 )
             }
             Text(
@@ -361,7 +363,7 @@ private fun ListDetailContent(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Failed to load bookmarks",
+                                text = stringResource(R.string.failed_load_bookmarks),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -369,7 +371,7 @@ private fun ListDetailContent(
                                 onClick = onRetry,
                                 modifier = Modifier.padding(top = 12.dp)
                             ) {
-                                Text("Retry")
+                                Text(stringResource(R.string.retry))
                             }
                         }
                     }
@@ -381,7 +383,7 @@ private fun ListDetailContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No bookmarks",
+                            text = stringResource(R.string.no_bookmarks),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

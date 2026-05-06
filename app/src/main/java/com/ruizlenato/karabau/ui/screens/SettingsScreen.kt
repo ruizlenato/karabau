@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -81,7 +82,7 @@ fun SettingsContent(
             LargeTopAppBar(
                 title = {
                     Text(
-                        "Settings",
+                        stringResource(R.string.settings_title),
                         modifier = Modifier.padding(start = 10.dp),
                         style = MaterialTheme.typography.headlineLarge
                     )
@@ -97,7 +98,7 @@ fun SettingsContent(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -114,7 +115,7 @@ fun SettingsContent(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            SettingsCategory(title = "Account")
+            SettingsCategory(title = stringResource(R.string.settings_account))
             Spacer(modifier = Modifier.height(2.dp))
             SegmentedItem(
                 position = SegmentedPosition.SINGLE,
@@ -126,19 +127,19 @@ fun SettingsContent(
                         tint = MaterialTheme.colorScheme.error
                     )
                 },
-                title = { Text("Logout", color = MaterialTheme.colorScheme.error) }
+                title = { Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.error) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            SettingsCategory(title = "Bookmarks")
+            SettingsCategory(title = stringResource(R.string.settings_bookmarks))
             Spacer(modifier = Modifier.height(2.dp))
             SegmentedItem(
                 position = SegmentedPosition.TOP,
                 icon = { Icon(Icons.Outlined.Archive, contentDescription = null) },
-                title = { Text("Archived Favorites") },
+                title = { Text(stringResource(R.string.archived_favorites)) },
                 subtitle = {
-                    Text("Show archived favorites in tags and lists")
+                    Text(stringResource(R.string.show_archived_favorites_desc))
                 },
                 trailingContent = {
                     Switch(
@@ -175,9 +176,9 @@ fun SettingsContent(
                         modifier = Modifier.offset(y = 10.dp)
                     )
                 },
-                title = { Text("List Icons") },
+                title = { Text(stringResource(R.string.list_icons)) },
                 subtitle = {
-                    Text("Show emojis/icons for Favorites and lists")
+                    Text(stringResource(R.string.show_list_icons_desc))
                 },
                 trailingContent = {
                     Switch(
@@ -197,7 +198,7 @@ fun SettingsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            SettingsCategory(title = "About")
+            SettingsCategory(title = stringResource(R.string.settings_about))
             Spacer(modifier = Modifier.height(2.dp))
             SegmentedItem(
                 position = SegmentedPosition.TOP,
@@ -210,7 +211,7 @@ fun SettingsContent(
                 },
                 icon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                 title = { Text("Luiz Renato") },
-                subtitle = { Text("Developer") }
+                subtitle = { Text(stringResource(R.string.developer)) }
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -231,7 +232,7 @@ fun SettingsContent(
                     )
                 },
                 title = { Text("GitHub") },
-                subtitle = { Text("Repository with source code") }
+                subtitle = { Text(stringResource(R.string.github_repo_desc)) }
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -246,8 +247,8 @@ fun SettingsContent(
                     context.startActivity(intent)
                 },
                 icon = { Icon(Icons.Outlined.VolunteerActivism, contentDescription = null) },
-                title = { Text("Donate") },
-                subtitle = { Text("Support the project and ongoing development") }
+                title = { Text(stringResource(R.string.donate)) },
+                subtitle = { Text(stringResource(R.string.donate_desc)) }
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -255,7 +256,7 @@ fun SettingsContent(
             SegmentedItem(
                 position = SegmentedPosition.BOTTOM,
                 icon = { Icon(Icons.Outlined.Info, contentDescription = null) },
-                title = { Text("Version") },
+                title = { Text(stringResource(R.string.version)) },
                 subtitle = { Text(appVersion) }
             )
 

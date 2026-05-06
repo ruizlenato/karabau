@@ -1,3 +1,52 @@
 <resources>
     <string name="app_name">Karabau</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="back">Back</string>
+    <string name="settings_account">Account</string>
+    <string name="logout">Logout</string>
+    <string name="settings_bookmarks">Bookmarks</string>
+    <string name="archived_favorites">Archived Favorites</string>
+    <string name="show_archived_favorites_desc">Show archived favorites in tags and lists</string>
+    <string name="list_icons">List Icons</string>
+    <string name="show_list_icons_desc">Show emojis/icons for Favorites and lists</string>
+    <string name="settings_about">About</string>
+    <string name="developer">Developer</string>
+    <string name="github_repo_desc">Repository with source code</string>
+    <string name="donate">Donate</string>
+    <string name="donate_desc">Support the project and ongoing development</string>
+    <string name="version">Version</string>
+
+    <string name="home_tab">Home</string>
+    <string name="tags_tab">Tags</string>
+    <string name="lists_tab">Lists</string>
+    <string name="add_bookmark">Add bookmark</string>
+    <string name="bookmark_deleted">Bookmark deleted</string>
+    <string name="undo">Undo</string>
+    <string name="failed_load_bookmarks">Failed to load bookmarks</string>
+    <string name="retry">Retry</string>
+    <string name="no_bookmarks">No Bookmarks</string>
+    <string name="saved_bookmarks_here">Your saved bookmarks will appear here</string>
+    <string name="search_bookmarks_placeholder">Search your bookmarks</string>
+
+    <string name="failed_load_tags">Failed to load tags</string>
+    <string name="no_tags">No Tags</string>
+    <string name="tags_help_text">Tags will appear as you organize your bookmarks</string>
+
+    <string name="failed_load_lists">Failed to load lists</string>
+    <string name="no_lists">No Lists</string>
+    <string name="lists_help_text">Lists will appear as you organize your bookmarks</string>
+    <string name="favorites">Favorites</string>
+    <string name="favourited_bookmarks_desc">Your favourited bookmarks</string>
+
+    <string name="untitled">Untitled</string>
+    <string name="open_link">Open Link</string>
+    <string name="favourite">Favourite</string>
+    <string name="favourited">Favourited</string>
+    <string name="copy">Copy</string>
+    <string name="share">Share</string>
+    <string name="archive">Archive</string>
+    <string name="archived">Archived</string>
+    <string name="delete">Delete</string>
+    <string name="clear">Clear</string>
 </resources>

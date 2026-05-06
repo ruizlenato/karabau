@@ -61,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,6 +69,7 @@ import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
+import com.ruizlenato.karabau.R
 import coil.imageLoader
 import coil.request.ImageRequest
 import kotlinx.coroutines.coroutineScope
@@ -75,24 +77,24 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 
 private data class HomeDestination(
-    val label: String,
+    val labelRes: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 )
 
 private val homeDestinations = listOf(
     HomeDestination(
-        label = "Home",
+        labelRes = R.string.home_tab,
         selectedIcon = Icons.Default.Home,
         unselectedIcon = Icons.Outlined.Home
     ),
     HomeDestination(
-        label = "Tags",
+        labelRes = R.string.tags_tab,
         selectedIcon = Icons.Default.LocalOffer,
         unselectedIcon = Icons.Outlined.LocalOffer
     ),
     HomeDestination(
-        label = "Lists",
+        labelRes = R.string.lists_tab,
         selectedIcon = Icons.AutoMirrored.Filled.FormatListBulleted,
         unselectedIcon = Icons.AutoMirrored.Outlined.FormatListBulleted
     )
@@ -279,7 +281,7 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Add bookmark",
+                                    contentDescription = stringResource(R.string.add_bookmark),
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -304,10 +306,10 @@ fun HomeScreen(
                                             } else {
                                                 destination.unselectedIcon
                                             },
-                                            contentDescription = destination.label
+                                            contentDescription = stringResource(destination.labelRes)
                                         )
                                     },
-                                    label = { Text(destination.label) }
+                                    label = { Text(stringResource(destination.labelRes)) }
                                 )
                             }
                         }
@@ -400,8 +402,8 @@ fun HomeScreen(
 
                 snackbarScope.launch {
                     val result = snackbarHostState.showSnackbar(
-                        message = "Bookmark deleted",
-                        actionLabel = "Undo",
+                        message = context.getString(R.string.bookmark_deleted),
+                        actionLabel = context.getString(R.string.undo),
                         withDismissAction = true
                     )
                     if (result == SnackbarResult.ActionPerformed) {
@@ -458,7 +460,7 @@ private fun HomeContent(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Failed to load bookmarks",
+                        text = stringResource(R.string.failed_load_bookmarks),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -466,7 +468,7 @@ private fun HomeContent(
                         onClick = onRetry,
                         modifier = Modifier.padding(top = 12.dp)
                     ) {
-                        Text("Retry")
+                        Text(stringResource(R.string.retry))
                     }
                 }
             }
@@ -494,12 +496,12 @@ private fun HomeContent(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "No Bookmarks",
+                        text = stringResource(R.string.no_bookmarks),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Your saved bookmarks will appear here",
+                        text = stringResource(R.string.saved_bookmarks_here),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
