@@ -2,12 +2,15 @@ package com.ruizlenato.karabau.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,8 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -39,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -170,11 +170,7 @@ fun SettingsContent(
             SegmentedItem(
                 position = SegmentedPosition.BOTTOM,
                 icon = {
-                    Icon(
-                        Icons.Outlined.EmojiEmotions,
-                        contentDescription = null,
-                        modifier = Modifier.offset(y = 10.dp)
-                    )
+                    Icon(Icons.Outlined.EmojiEmotions, contentDescription = null)
                 },
                 title = { Text(stringResource(R.string.list_icons)) },
                 subtitle = {
@@ -324,14 +320,48 @@ private fun SegmentedItem(
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        ListItem(
-            leadingContent = icon,
-            headlineContent = title,
-            supportingContent = subtitle,
-            trailingContent = trailingContent,
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent
-            )
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .padding(end = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        icon()
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface
+                ) {
+                    title()
+                }
+                subtitle?.let {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        androidx.compose.material3.LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+                        androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        it()
+                    }
+                }
+            }
+
+            trailingContent?.let {
+                Spacer(modifier = Modifier.width(12.dp))
+                it()
+            }
+        }
     }
 }
