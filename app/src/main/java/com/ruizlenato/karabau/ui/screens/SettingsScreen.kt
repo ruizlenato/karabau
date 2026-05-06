@@ -3,11 +3,10 @@ package com.ruizlenato.karabau.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,9 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.VolunteerActivism
+import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -134,7 +134,7 @@ fun SettingsContent(
             SettingsCategory(title = "Bookmarks")
             Spacer(modifier = Modifier.height(2.dp))
             SegmentedItem(
-                position = SegmentedPosition.SINGLE,
+                position = SegmentedPosition.TOP,
                 icon = { Icon(Icons.Outlined.Archive, contentDescription = null) },
                 title = { Text("Archived Favorites") },
                 subtitle = {
@@ -164,6 +164,37 @@ fun SettingsContent(
                 }
             )
 
+            Spacer(modifier = Modifier.height(2.dp))
+
+            SegmentedItem(
+                position = SegmentedPosition.BOTTOM,
+                icon = {
+                    Icon(
+                        Icons.Outlined.EmojiEmotions,
+                        contentDescription = null,
+                        modifier = Modifier.offset(y = 10.dp)
+                    )
+                },
+                title = { Text("List Icons") },
+                subtitle = {
+                    Text("Show emojis/icons for Favorites and lists")
+                },
+                trailingContent = {
+                    Switch(
+                        checked = currentSettings.showListIcons,
+                        onCheckedChange = { checked ->
+                            if (currentSettings.showListIcons != checked) {
+                                scope.launch {
+                                    settingsDataStore.updateSettings(
+                                        currentSettings.copy(showListIcons = checked)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             SettingsCategory(title = "About")
@@ -177,7 +208,7 @@ fun SettingsContent(
                     )
                     context.startActivity(intent)
                 },
-                icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                 title = { Text("Luiz Renato") },
                 subtitle = { Text("Developer") }
             )
@@ -214,7 +245,7 @@ fun SettingsContent(
                     )
                     context.startActivity(intent)
                 },
-                icon = { Icon(Icons.Default.VolunteerActivism, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.VolunteerActivism, contentDescription = null) },
                 title = { Text("Donate") },
                 subtitle = { Text("Support the project and ongoing development") }
             )
@@ -223,7 +254,7 @@ fun SettingsContent(
 
             SegmentedItem(
                 position = SegmentedPosition.BOTTOM,
-                icon = { Icon(Icons.Default.Info, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.Info, contentDescription = null) },
                 title = { Text("Version") },
                 subtitle = { Text(appVersion) }
             )

@@ -47,6 +47,7 @@ internal fun ListsContent(
     isLoading: Boolean,
     isRefreshing: Boolean,
     errorMessage: String?,
+    showListIcons: Boolean,
     lists: List<SavedListItem>,
     selectedList: SavedListItem?,
     selectedListDetails: SavedListItem?,
@@ -165,13 +166,15 @@ internal fun ListsContent(
                                 ListItem(
                                     modifier = Modifier.fillMaxWidth(),
                                     onClick = onOpenFavorites,
-                                    leadingContent = {
-                                        Icon(
-                                            imageVector = Icons.Default.Star,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.tertiary
-                                        )
-                                    },
+                                    leadingContent = if (showListIcons) {
+                                        {
+                                            Icon(
+                                                imageVector = Icons.Default.Star,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.tertiary
+                                            )
+                                        }
+                                    } else null,
                                     trailingContent = {
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -213,12 +216,14 @@ internal fun ListsContent(
                                 ListItem(
                                     modifier = Modifier.fillMaxWidth(),
                                     onClick = { onListClick(list) },
-                                    leadingContent = {
-                                        Text(
-                                            text = list.icon,
-                                            style = MaterialTheme.typography.titleLarge
-                                        )
-                                    },
+                                    leadingContent = if (showListIcons) {
+                                        {
+                                            Text(
+                                                text = list.icon,
+                                                style = MaterialTheme.typography.titleLarge
+                                            )
+                                        }
+                                    } else null,
                                     trailingContent = {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,

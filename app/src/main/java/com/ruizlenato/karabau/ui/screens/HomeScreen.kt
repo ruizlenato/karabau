@@ -65,6 +65,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.data.model.BookmarkItem
+import com.ruizlenato.karabau.data.local.SettingsDataStore
+import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 import coil.imageLoader
 import coil.request.ImageRequest
@@ -111,6 +113,8 @@ fun HomeScreen(
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     var selectedBookmark by remember { mutableStateOf<BookmarkItem?>(null) }
     val context = LocalContext.current
+    val settingsDataStore = remember(context) { SettingsDataStore(context.applicationContext) }
+    val currentSettings by settingsDataStore.settingsFlow.collectAsStateWithLifecycle(initialValue = Settings())
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
 
@@ -350,6 +354,7 @@ fun HomeScreen(
                             isLoading = homeUiState.isListsLoading,
                             isRefreshing = homeUiState.isListsRefreshing,
                             errorMessage = homeUiState.listsErrorMessage,
+                            showListIcons = currentSettings.showListIcons,
                             lists = homeUiState.lists,
                             selectedList = homeUiState.selectedList,
                             selectedListDetails = homeUiState.selectedListDetails,

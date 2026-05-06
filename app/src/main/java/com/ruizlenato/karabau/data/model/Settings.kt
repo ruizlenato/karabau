@@ -13,6 +13,7 @@ data class Settings(
     val theme: Theme = Theme.SYSTEM,
     val defaultBookmarkView: BookmarkView = BookmarkView.READER,
     val showNotes: Boolean = false,
+    val showListIcons: Boolean = true,
     val keepScreenOnWhileReading: Boolean = false,
     val customHeaders: Map<String, String> = emptyMap(),
     val archiveDisplayBehaviour: ArchiveDisplayBehaviour = ArchiveDisplayBehaviour.HIDE,

@@ -32,6 +32,7 @@ class SettingsDataStore(private val context: Context) {
         private val THEME = stringPreferencesKey("theme")
         private val DEFAULT_BOOKMARK_VIEW = stringPreferencesKey("default_bookmark_view")
         private val SHOW_NOTES = booleanPreferencesKey("show_notes")
+        private val SHOW_LIST_ICONS = booleanPreferencesKey("show_list_icons")
         private val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on_while_reading")
         private val CUSTOM_HEADERS = stringPreferencesKey("custom_headers")
         private val ARCHIVE_DISPLAY_BEHAVIOUR = stringPreferencesKey("archive_display_behaviour")
@@ -92,6 +93,7 @@ class SettingsDataStore(private val context: Context) {
             theme = runCatching { preferences[THEME]?.let { Theme.valueOf(it) } }.getOrNull() ?: Theme.SYSTEM,
             defaultBookmarkView = runCatching { preferences[DEFAULT_BOOKMARK_VIEW]?.let { BookmarkView.valueOf(it) } }.getOrNull() ?: BookmarkView.READER,
             showNotes = preferences[SHOW_NOTES] ?: false,
+            showListIcons = preferences[SHOW_LIST_ICONS] ?: true,
             keepScreenOnWhileReading = preferences[KEEP_SCREEN_ON] ?: false,
             customHeaders = runCatching { preferences[CUSTOM_HEADERS]?.let { Json.decodeFromString<Map<String, String>>(it) } }.getOrNull() ?: emptyMap(),
             archiveDisplayBehaviour = runCatching {
@@ -126,6 +128,7 @@ class SettingsDataStore(private val context: Context) {
             preferences[THEME] = settings.theme.name
             preferences[DEFAULT_BOOKMARK_VIEW] = settings.defaultBookmarkView.name
             preferences[SHOW_NOTES] = settings.showNotes
+            preferences[SHOW_LIST_ICONS] = settings.showListIcons
             preferences[KEEP_SCREEN_ON] = settings.keepScreenOnWhileReading
             preferences[CUSTOM_HEADERS] = Json.encodeToString(settings.customHeaders)
             preferences[ARCHIVE_DISPLAY_BEHAVIOUR] = settings.archiveDisplayBehaviour.name
