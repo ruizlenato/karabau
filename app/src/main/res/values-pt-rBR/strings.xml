@@ -1,0 +1,76 @@
+<resources>
+    <string name="app_name">Karabau</string>
+
+    <string name="settings_title">Configurações</string>
+    <string name="back">Voltar</string>
+    <string name="settings_account">Conta</string>
+    <string name="logout">Sair</string>
+    <string name="settings_bookmarks">Bookmarks</string>
+    <string name="archived_favorites">Favoritos arquivados</string>
+    <string name="show_archived_favorites_desc">Mostrar favoritos arquivados em tags e listas</string>
+    <string name="list_icons">Ícones das listas</string>
+    <string name="show_list_icons_desc">Mostrar emojis/ícones para Favoritos e listas</string>
+    <string name="settings_about">Sobre</string>
+    <string name="developer">Desenvolvedor</string>
+    <string name="github_repo_desc">Repositório com o código-fonte</string>
+    <string name="donate">Doar</string>
+    <string name="donate_desc">Apoie o projeto e o desenvolvimento contínuo</string>
+    <string name="version">Versão</string>
+
+    <string name="home_tab">Início</string>
+    <string name="tags_tab">Tags</string>
+    <string name="lists_tab">Listas</string>
+    <string name="add_bookmark">Adicionar bookmark</string>
+    <string name="bookmark_deleted">Bookmark deletado</string>
+    <string name="undo">Desfazer</string>
+    <string name="failed_load_bookmarks">Falha ao carregar bookmarks</string>
+    <string name="retry">Tentar novamente</string>
+    <string name="no_bookmarks">Sem bookmarks</string>
+    <string name="saved_bookmarks_here">Seus bookmarks salvos aparecerão aqui</string>
+    <string name="search_bookmarks_placeholder">Buscar nos seus bookmarks</string>
+
+    <string name="failed_load_tags">Falha ao carregar tags</string>
+    <string name="no_tags">Sem tags</string>
+    <string name="tags_help_text">As tags aparecerão conforme você organiza seus bookmarks</string>
+
+    <string name="failed_load_lists">Falha ao carregar listas</string>
+    <string name="no_lists">Sem listas</string>
+    <string name="lists_help_text">As listas aparecerão conforme você organiza seus bookmarks</string>
+    <string name="favorites">Favoritos</string>
+    <string name="favourited_bookmarks_desc">Seus bookmarks favoritados</string>
+
+    <string name="untitled">Sem título</string>
+    <string name="open_link">Abrir link</string>
+    <string name="favourite">Favoritar</string>
+    <string name="favourited">Favoritado</string>
+    <string name="copy">Copiar</string>
+    <string name="share">Compartilhar</string>
+    <string name="archive">Arquivar</string>
+    <string name="archived">Arquivado</string>
+    <string name="delete">Excluir</string>
+    <string name="clear">Limpar</string>
+
+    <string name="welcome_logo">Logo do Karabau</string>
+    <string name="welcome_title">Karabau</string>
+    <string name="welcome_subtitle">Seu gerenciador pessoal de bookmarks</string>
+    <string name="welcome_description">Salve e organize seus links favoritos com facilidade. O Karabau ajuda você a guardar seus bookmarks em um lugar seguro, acessível de qualquer lugar.</string>
+    <string name="continue_action">Continuar</string>
+    <string name="learn_about_karakeep">Saiba mais sobre o Karakeep</string>
+
+    <string name="login_title">Entrar</string>
+    <string name="login_subtitle">Digite suas credenciais para acessar seus bookmarks</string>
+    <string name="email">Email</string>
+    <string name="email_placeholder">seu@email.com</string>
+    <string name="password">Senha</string>
+    <string name="hide_password">Ocultar senha</string>
+    <string name="show_password">Mostrar senha</string>
+    <string name="error_email_password_required">Email e senha são obrigatórios</string>
+    <string name="error_email_required">Email é obrigatório</string>
+    <string name="error_password_required">Senha é obrigatória</string>
+
+    <string name="add_server_title">Adicionar servidor</string>
+    <string name="add_server_subtitle">Digite a URL do seu servidor Karakeep</string>
+    <string name="server_address">Endereço do servidor</string>
+    <string name="server_address_required">O endereço do servidor é obrigatório</string>
+    <string name="server_address_invalid_scheme">O endereço do servidor deve começar com http:// ou https://</string>
+</resources>
