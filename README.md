@@ -4,6 +4,8 @@
 [![API](https://img.shields.io/badge/31%2B-level?style=for-the-badge&logo=android&logoColor=3cd382&label=API&labelColor=21262d&color=ff663b)](https://developer.android.com/studio/releases/platforms)
 [![Release](https://img.shields.io/github/v/release/ruizlenato/karabau?display_name=tag&style=for-the-badge&logo=github&labelColor=21262d&color=1f6feb)](https://github.com/ruizlenato/karabau/releases/latest)
 
+![Banner](https://raw.githubusercontent.com/ruizlenato/karabau/main/images/Banner.png)
+
 Karabau is an Android client for [Karakeep](https://karakeep.app/), built from scratch with Jetpack Compose — its name a playful mashup of Karakeep and Carabão, one of Pará's most legendary aparelhagens: the thunderous, bass-heavy sound system culture that pulses through the heart of Brazilian Amazonian music.
 
 ## Features
