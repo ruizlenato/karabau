@@ -49,4 +49,28 @@
     <string name="archived">Archived</string>
     <string name="delete">Delete</string>
     <string name="clear">Clear</string>
+
+    <string name="welcome_logo">Karabau Logo</string>
+    <string name="welcome_title">Karabau</string>
+    <string name="welcome_subtitle">Your personal bookmark manager</string>
+    <string name="welcome_description">Save and organize your favorite web links with ease. Karabau helps you hoard your bookmarks in one secure place, accessible from anywhere.</string>
+    <string name="continue_action">Continue</string>
+    <string name="learn_about_karakeep">Learn about Karakeep</string>
+
+    <string name="login_title">Login</string>
+    <string name="login_subtitle">Enter your credentials to access your bookmarks</string>
+    <string name="email">Email</string>
+    <string name="email_placeholder">your@email.com</string>
+    <string name="password">Password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="show_password">Show password</string>
+    <string name="error_email_password_required">Email and password are required</string>
+    <string name="error_email_required">Email is required</string>
+    <string name="error_password_required">Password is required</string>
+
+    <string name="add_server_title">Add Server</string>
+    <string name="add_server_subtitle">Enter the URL of your Karakeep server</string>
+    <string name="server_address">Server Address</string>
+    <string name="server_address_required">Server address is required</string>
+    <string name="server_address_invalid_scheme">Server address must start with http:// or https://</string>
 </resources>

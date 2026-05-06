@@ -55,7 +55,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PlatformImeOptions
@@ -64,6 +66,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.ui.theme.authOutlinedTextFieldColors
 import com.ruizlenato.karabau.ui.viewmodel.AuthState
 import com.ruizlenato.karabau.ui.viewmodel.AuthViewModel
@@ -78,6 +81,7 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -107,20 +111,20 @@ fun LoginScreen(
 
         when {
             emailBlank && passwordBlank -> {
-                emailFieldError = "Email and password are required"
-                passwordFieldError = "Email and password are required"
+                emailFieldError = context.getString(R.string.error_email_password_required)
+                passwordFieldError = context.getString(R.string.error_email_password_required)
                 return
             }
 
             emailBlank -> {
-                emailFieldError = "Email is required"
+                emailFieldError = context.getString(R.string.error_email_required)
                 passwordFieldError = null
                 return
             }
 
             passwordBlank -> {
                 emailFieldError = null
-                passwordFieldError = "Password is required"
+                passwordFieldError = context.getString(R.string.error_password_required)
                 return
             }
 
@@ -143,7 +147,7 @@ fun LoginScreen(
             onLoginSuccess()
         }
         uiState.errorMessage?.let { message ->
-            if (message == "Email and password are required") {
+            if (message == context.getString(R.string.error_email_password_required)) {
                 emailFieldError = message
                 passwordFieldError = message
                 viewModel.dismissError()
@@ -164,12 +168,12 @@ fun LoginScreen(
                 title = {
                     Column(modifier = Modifier.padding(start = 10.dp, top = 6.dp)) {
                         Text(
-                            text = "Login",
+                            text = stringResource(R.string.login_title),
                             style = MaterialTheme.typography.headlineMedium,
                             
                         )
                         Text(
-                            text = "Enter your credentials to access your bookmarks",
+                            text = stringResource(R.string.login_subtitle),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -186,7 +190,7 @@ fun LoginScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -229,8 +233,8 @@ fun LoginScreen(
                             emailFieldError = null
                             viewModel.onEmailChange(it)
                         },
-                        label = { Text("Email") },
-                        placeholder = { Text("your@email.com") },
+                        label = { Text(stringResource(R.string.email)) },
+                        placeholder = { Text(stringResource(R.string.email_placeholder)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Person,
@@ -263,7 +267,7 @@ fun LoginScreen(
                             passwordFieldError = null
                             viewModel.onPasswordChange(it)
                         },
-                        label = { Text("Password") },
+                        label = { Text(stringResource(R.string.password)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Lock,
@@ -275,7 +279,7 @@ fun LoginScreen(
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                    contentDescription = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password),
                                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                 )
                             }
@@ -323,7 +327,7 @@ fun LoginScreen(
                         )
                     } else {
                         Text(
-                            text = "Login",
+                            text = stringResource(R.string.login_title),
                             style = MaterialTheme.typography.labelLarge
                         )
                         Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))

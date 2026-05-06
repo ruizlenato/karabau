@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -76,7 +74,7 @@ fun WelcomeScreen(
             }
 
             Text(
-                text = "Karabau",
+                text = stringResource(R.string.welcome_title),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
@@ -85,7 +83,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Your personal bookmark manager",
+                text = stringResource(R.string.welcome_subtitle),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
@@ -106,7 +104,7 @@ fun WelcomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Save and organize your favorite web links with ease. Karabau helps you hoard your bookmarks in one secure place, accessible from anywhere.",
+                        text = stringResource(R.string.welcome_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -132,7 +130,7 @@ fun WelcomeScreen(
                     )
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.continue_action),
                         style = MaterialTheme.typography.labelLarge
                     )
                     Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
@@ -157,7 +155,7 @@ fun WelcomeScreen(
                     )
                 ) {
                     Text(
-                        text = "Learn about Karakeep",
+                        text = stringResource(R.string.learn_about_karakeep),
                         style = MaterialTheme.typography.labelLarge
                     )
                 }

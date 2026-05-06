@@ -47,10 +47,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.ui.theme.authOutlinedTextFieldColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,6 +67,7 @@ fun ServerConfigScreen(
     var address by remember { mutableStateOf(currentAddress) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -80,12 +84,12 @@ fun ServerConfigScreen(
                 title = {
                     Column(modifier = Modifier.padding(start = 10.dp, top = 6.dp)) {
                         Text(
-                            text = "Add Server",
+                            text = stringResource(R.string.add_server_title),
                             style = MaterialTheme.typography.headlineMedium,
                             
                         )
                         Text(
-                            text = "Enter the URL of your Karakeep server",
+                            text = stringResource(R.string.add_server_subtitle),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -102,7 +106,7 @@ fun ServerConfigScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -137,7 +141,7 @@ fun ServerConfigScreen(
                             errorMessage = null
                             onAddressChange(it)
                         },
-                        label = { Text("Server Address") },
+                        label = { Text(stringResource(R.string.server_address)) },
                         placeholder = { Text("https://cloud.karakeep.app") },
                         leadingIcon = {
                             Icon(
@@ -170,13 +174,13 @@ fun ServerConfigScreen(
                     onClick = {
                         val trimmedAddress = address.trim()
                         if (trimmedAddress.isBlank()) {
-                            errorMessage = "Server address is required"
+                            errorMessage = context.getString(R.string.server_address_required)
                             return@Button
                         }
                         if (!trimmedAddress.startsWith("http://") &&
                             !trimmedAddress.startsWith("https://")
                         ) {
-                            errorMessage = "Server address must start with http:// or https://"
+                            errorMessage = context.getString(R.string.server_address_invalid_scheme)
                             return@Button
                         }
                         onContinue(trimmedAddress)
@@ -193,7 +197,7 @@ fun ServerConfigScreen(
                     )
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(R.string.continue_action),
                         style = MaterialTheme.typography.labelLarge
                     )
                     Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
