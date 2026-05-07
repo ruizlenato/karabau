@@ -21,8 +21,6 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -42,7 +40,6 @@ sealed class ApiResult<out T> {
 class KarabauRepository {
 
     private val _settingsFlow = MutableStateFlow<Settings?>(null)
-    val settingsFlow: StateFlow<Settings?> = _settingsFlow.asStateFlow()
 
     private data class ServiceCacheKey(
         val address: String,
@@ -68,16 +65,8 @@ class KarabauRepository {
         _settingsFlow.value = settings
     }
 
-    fun isConfigured(): Boolean = currentSettings != null
-
     private fun requireSettings(): Settings =
         currentSettings ?: throw IllegalStateException("KarabauRepository not configured. Call configure() first.")
-
-    private fun requireLoggedIn(): Settings {
-        val settings = requireSettings()
-        check(settings.isLoggedIn()) { "Not logged in" }
-        return settings
-    }
 
     private inline fun <T> safeApiCall(
         block: () -> ApiResult<T>
@@ -150,7 +139,7 @@ class KarabauRepository {
 
 
     suspend fun exchangeKey(email: String, password: String): ApiResult<ExchangeKeyResponse> {
-        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (currentSettings == null) return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
 
         return safeApiCall {
             val randStr = UUID.randomUUID().toString().take(8)
@@ -172,7 +161,7 @@ class KarabauRepository {
     }
 
     suspend fun validateKey(apiKey: String): ApiResult<ValidateKeyResponse> {
-        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
+        if (currentSettings == null) return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
 
         return safeApiCall {
             val request = ValidateKeyRequest(apiKey = apiKey)
@@ -183,19 +172,6 @@ class KarabauRepository {
                     429 -> "RATE_LIMIT"
                     else -> "UNKNOWN"
                 }
-            }
-        }
-    }
-
-    suspend fun healthCheck(): ApiResult<Boolean> {
-        val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
-
-        return safeApiCall {
-            val response = apiService.healthCheck()
-            if (response.isSuccessful) {
-                ApiResult.Success(true)
-            } else {
-                ApiResult.Error("FAILED", "Health check failed")
             }
         }
     }
@@ -235,7 +211,7 @@ class KarabauRepository {
             )
 
             handleBatchGetResponse(response, "load bookmarks") { json ->
-                parseBookmarksPageFromBatchJson(json)?.bookmarks
+                parseBookmarksPageFromBatchJson(json).bookmarks
             }
         }
     }
@@ -690,7 +666,7 @@ class KarabauRepository {
         }
     }
 
-    private fun parseBookmarksPageFromBatchJson(json: JSONObject): GetBookmarksResponse? {
+    private fun parseBookmarksPageFromBatchJson(json: JSONObject): GetBookmarksResponse {
         val bookmarksArray = json.optJSONArray("bookmarks")
             ?: return GetBookmarksResponse(bookmarks = emptyList(), nextCursor = null)
 
@@ -731,7 +707,7 @@ class KarabauRepository {
         )
     }
 
-    private fun parseTagsListFromBatchJson(json: JSONObject): List<TagItem>? {
+    private fun parseTagsListFromBatchJson(json: JSONObject): List<TagItem> {
         val tagsArray = json.optJSONArray("tags") ?: return emptyList()
 
         val tags = mutableListOf<TagItem>()
@@ -750,7 +726,7 @@ class KarabauRepository {
         return tags
     }
 
-    private fun parseListsFromBatchJson(json: JSONObject): List<SavedListItem>? {
+    private fun parseListsFromBatchJson(json: JSONObject): List<SavedListItem> {
         val listsArray = json.optJSONArray("lists") ?: return emptyList()
 
         val lists = mutableListOf<SavedListItem>()

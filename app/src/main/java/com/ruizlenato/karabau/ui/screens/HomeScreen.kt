@@ -107,7 +107,6 @@ fun HomeScreen(
     onAddBookmark: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: androidx.compose.animation.AnimatedContentScope,
-    onBookmarkCreated: () -> Unit = {},
     savedStateHandle: androidx.lifecycle.SavedStateHandle? = null
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -117,8 +116,18 @@ fun HomeScreen(
     val context = LocalContext.current
     val settingsDataStore = remember(context) { SettingsDataStore(context.applicationContext) }
     val currentSettings by settingsDataStore.settingsFlow.collectAsStateWithLifecycle(initialValue = Settings())
-    val snackbarHostState = remember { SnackbarHostState() }
-    val snackbarScope = rememberCoroutineScope()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val snackBarScope = rememberCoroutineScope()
+    val bookmarkDeletedMessage = stringResource(R.string.bookmark_deleted)
+    val undoActionLabel = stringResource(R.string.undo)
+
+    fun dismissSelectedBookmark() {
+        selectedBookmark = null
+    }
+
+    fun updateSelectedBookmark(updated: BookmarkItem) {
+        selectedBookmark = updated
+    }
 
     LaunchedEffect(Unit) {
         coroutineScope {
@@ -235,7 +244,7 @@ fun HomeScreen(
             )
         } else {
             Scaffold(
-                snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
                 topBar = {
                     if (activeTab == 0) {
                         HomeTopBar(
@@ -379,7 +388,7 @@ fun HomeScreen(
     selectedBookmark?.let { bookmark ->
         BookmarkDetailBottomSheet(
             bookmark = bookmark,
-            onDismiss = { selectedBookmark = null },
+            onDismiss = { dismissSelectedBookmark() },
             onOpenLink = { url ->
                 val uri = url.toUri()
                 if (uri.scheme == "http" || uri.scheme == "https") {
@@ -397,13 +406,13 @@ fun HomeScreen(
                 context.startActivity(Intent.createChooser(shareIntent, null))
             },
             onDelete = { item ->
-                selectedBookmark = null
+                dismissSelectedBookmark()
                 homeViewModel.deleteBookmarkWithUndo(item)
 
-                snackbarScope.launch {
-                    val result = snackbarHostState.showSnackbar(
-                        message = context.getString(R.string.bookmark_deleted),
-                        actionLabel = context.getString(R.string.undo),
+                snackBarScope.launch {
+                    val result = snackBarHostState.showSnackbar(
+                        message = bookmarkDeletedMessage,
+                        actionLabel = undoActionLabel,
                         withDismissAction = true
                     )
                     if (result == SnackbarResult.ActionPerformed) {
@@ -413,12 +422,12 @@ fun HomeScreen(
             },
             onToggleFavourite = { item ->
                 homeViewModel.toggleBookmarkFavourite(item) { updated ->
-                    selectedBookmark = updated
+                    updateSelectedBookmark(updated)
                 }
             },
             onToggleArchived = { item ->
                 homeViewModel.toggleBookmarkArchived(item) { updated ->
-                    selectedBookmark = updated
+                    updateSelectedBookmark(updated)
                 }
             }
         )

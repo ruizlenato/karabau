@@ -199,11 +199,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             is ApiResult.Error -> {
-                Unit
+                // no-op
             }
 
             is ApiResult.NetworkError -> {
-                Unit
+                // no-op
             }
         }
 
@@ -514,26 +514,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 is ApiResult.Success -> {
                     applyBookmarkUpdate(updatedBookmark)
                     onUpdated(updatedBookmark)
-                }
-
-                is ApiResult.Error -> Unit
-                is ApiResult.NetworkError -> Unit
-            }
-        }
-    }
-
-    fun deleteBookmark(
-        bookmark: BookmarkItem,
-        onDeleted: () -> Unit = {}
-    ) {
-        viewModelScope.launch {
-            val settings = settingsDataStore.settingsFlow.first()
-            repository.configure(settings)
-
-            when (repository.deleteBookmark(bookmark.id)) {
-                is ApiResult.Success -> {
-                    applyBookmarkRemoval(bookmark.id)
-                    onDeleted()
                 }
 
                 is ApiResult.Error -> Unit

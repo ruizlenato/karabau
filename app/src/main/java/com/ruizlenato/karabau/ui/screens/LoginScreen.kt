@@ -1,6 +1,5 @@
 package com.ruizlenato.karabau.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -55,7 +54,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -79,9 +77,8 @@ fun LoginScreen(
     viewModel: AuthViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackBarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -90,6 +87,9 @@ fun LoginScreen(
     var passwordFieldError by remember { mutableStateOf<String?>(null) }
     val isLoading = uiState.authState == AuthState.LOADING
     val textFieldColors = authOutlinedTextFieldColors()
+    val errorEmailPasswordRequired = stringResource(R.string.error_email_password_required)
+    val errorEmailRequired = stringResource(R.string.error_email_required)
+    val errorPasswordRequired = stringResource(R.string.error_password_required)
     val emailKeyboardOptions = remember {
         KeyboardOptions(
             keyboardType = KeyboardType.Email,
@@ -111,20 +111,20 @@ fun LoginScreen(
 
         when {
             emailBlank && passwordBlank -> {
-                emailFieldError = context.getString(R.string.error_email_password_required)
-                passwordFieldError = context.getString(R.string.error_email_password_required)
+                emailFieldError = errorEmailPasswordRequired
+                passwordFieldError = errorEmailPasswordRequired
                 return
             }
 
             emailBlank -> {
-                emailFieldError = context.getString(R.string.error_email_required)
+                emailFieldError = errorEmailRequired
                 passwordFieldError = null
                 return
             }
 
             passwordBlank -> {
                 emailFieldError = null
-                passwordFieldError = context.getString(R.string.error_password_required)
+                passwordFieldError = errorPasswordRequired
                 return
             }
 
@@ -147,13 +147,13 @@ fun LoginScreen(
             onLoginSuccess()
         }
         uiState.errorMessage?.let { message ->
-            if (message == context.getString(R.string.error_email_password_required)) {
+            if (message == errorEmailPasswordRequired) {
                 emailFieldError = message
                 passwordFieldError = message
                 viewModel.dismissError()
                 return@let
             }
-            snackbarHostState.showSnackbar(
+            snackBarHostState.showSnackbar(
                 message = message,
                 duration = SnackbarDuration.Long
             )
@@ -198,7 +198,7 @@ fun LoginScreen(
             )
         },
         snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
+            SnackbarHost(snackBarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
                     containerColor = MaterialTheme.colorScheme.errorContainer,

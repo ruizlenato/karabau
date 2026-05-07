@@ -170,11 +170,11 @@ fun CreateBookmarkScreen(
                                         coroutineScope.launch {
                                             isSaving = true
                                             saveError = null
-                        val result = createBookmarkViewModel.submitBookmark(
-                            url = url,
-                            title = title,
-                            note = note
-                        )
+                                            val result = createBookmarkViewModel.submitBookmark(
+                                                url = url,
+                                                title = title,
+                                                note = note
+                                            )
                                             when (result) {
                                                 is ApiResult.Success -> onSaved()
                                                 is ApiResult.Error -> saveError = result.message

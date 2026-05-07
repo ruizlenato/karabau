@@ -280,8 +280,6 @@ fun KarabauApp(
                             },
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedContentScope = this@composable,
-                            onBookmarkCreated = {
-                            },
                             savedStateHandle = it.savedStateHandle
                         )
 
@@ -319,8 +317,8 @@ fun KarabauApp(
                 }
             }
 
-            LaunchedEffect(mainUiState.isLoading, mainUiState.isLoggedIn, initialSharedUrl, handledSharedUrl) {
-                if (!mainUiState.isLoading && mainUiState.isLoggedIn && !handledSharedUrl) {
+            LaunchedEffect(false, mainUiState.isLoggedIn, initialSharedUrl, handledSharedUrl) {
+                if (mainUiState.isLoggedIn && !handledSharedUrl) {
                     val url = initialSharedUrl?.trim().orEmpty()
                     if (url.isNotBlank()) {
                         handledSharedUrl = true

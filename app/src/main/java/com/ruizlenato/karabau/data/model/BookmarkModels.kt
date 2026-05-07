@@ -3,15 +3,6 @@ package com.ruizlenato.karabau.data.model
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
-data class GetBookmarksRequest(
-    val archived: Boolean? = false,
-    val includeContent: Boolean = false,
-    val useCursorV2: Boolean = true,
-    val limit: Int = 20,
-    val tagId: String? = null,
-    val cursor: BookmarkCursor? = null
-)
-
 data class BookmarkCursor(
     val createdAt: String,
     val id: String

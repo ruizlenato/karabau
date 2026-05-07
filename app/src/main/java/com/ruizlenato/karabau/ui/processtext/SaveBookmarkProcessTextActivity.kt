@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,7 +36,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -223,7 +221,7 @@ private fun ProcessTextBookmarkDialog(
                         value = url,
                         onValueChange = {
                             url = it
-                            touched = true
+                            if (!touched) touched = true
                         },
                         label = { Text(stringResource(R.string.selected_link)) },
                         placeholder = { Text(stringResource(R.string.selected_link_placeholder)) },
@@ -285,7 +283,7 @@ private fun ProcessTextBookmarkDialog(
                     Button(
                         enabled = canSave,
                         onClick = {
-                            touched = true
+                            if (!touched) touched = true
                             if (url.isBlank() || !isValidHttpUrlFromProcessText(url)) return@Button
 
                             scope.launch {

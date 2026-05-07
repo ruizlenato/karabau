@@ -54,12 +54,6 @@ data class DeleteBookmarkRequest(
 )
 
 @Serializable
-data class ApiError(
-    val code: String? = null,
-    val message: String? = null
-)
-
-@Serializable
 data class HealthCheckResponse(
     val status: String,
     val version: String? = null

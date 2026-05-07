@@ -1,7 +1,5 @@
 package com.ruizlenato.karabau.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -47,7 +45,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -67,10 +64,11 @@ fun ServerConfigScreen(
     var address by remember { mutableStateOf(currentAddress) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val serverAddressRequiredError = stringResource(R.string.server_address_required)
+    val serverAddressInvalidSchemeError = stringResource(R.string.server_address_invalid_scheme)
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -174,13 +172,13 @@ fun ServerConfigScreen(
                     onClick = {
                         val trimmedAddress = address.trim()
                         if (trimmedAddress.isBlank()) {
-                            errorMessage = context.getString(R.string.server_address_required)
+                            errorMessage = serverAddressRequiredError
                             return@Button
                         }
                         if (!trimmedAddress.startsWith("http://") &&
                             !trimmedAddress.startsWith("https://")
                         ) {
-                            errorMessage = context.getString(R.string.server_address_invalid_scheme)
+                            errorMessage = serverAddressInvalidSchemeError
                             return@Button
                         }
                         onContinue(trimmedAddress)

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,8 +20,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -43,7 +42,6 @@ import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.data.model.BookmarkItem
 import com.ruizlenato.karabau.data.model.SavedListItem
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun ListsContent(
     isLoading: Boolean,
@@ -161,13 +159,13 @@ internal fun ListsContent(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 2.dp),
+                                    .padding(vertical = 2.dp)
+                                    .clickable(onClick = onOpenFavorites),
                                 shape = MaterialTheme.shapes.small,
                                 color = MaterialTheme.colorScheme.surfaceContainer
                             ) {
                                 ListItem(
                                     modifier = Modifier.fillMaxWidth(),
-                                    onClick = onOpenFavorites,
                                     leadingContent = if (showListIcons) {
                                         {
                                             Icon(
@@ -184,17 +182,15 @@ internal fun ListsContent(
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     },
-                                    colors = ListItemDefaults.colors(
-                                        containerColor = Color.Transparent
-                                    )
-                                ) {
-                                    Column {
+                                    headlineContent = {
                                         Text(
                                             text = stringResource(R.string.favorites),
                                             style = MaterialTheme.typography.bodyLarge,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                    },
+                                    supportingContent = {
                                         Text(
                                             text = stringResource(R.string.favourited_bookmarks_desc),
                                             maxLines = 1,
@@ -202,8 +198,11 @@ internal fun ListsContent(
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    }
-                                }
+                                    },
+                                    colors = ListItemDefaults.colors(
+                                        containerColor = Color.Transparent
+                                    )
+                                )
                             }
                         }
 
@@ -211,13 +210,13 @@ internal fun ListsContent(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 2.dp),
+                                    .padding(vertical = 2.dp)
+                                    .clickable(onClick = { onListClick(list) }),
                                 shape = MaterialTheme.shapes.small,
                                 color = MaterialTheme.colorScheme.surfaceContainer
                             ) {
                                 ListItem(
                                     modifier = Modifier.fillMaxWidth(),
-                                    onClick = { onListClick(list) },
                                     leadingContent = if (showListIcons) {
                                         {
                                             Text(
@@ -238,28 +237,29 @@ internal fun ListsContent(
                                             )
                                         }
                                     },
-                                    colors = ListItemDefaults.colors(
-                                        containerColor = Color.Transparent
-                                    )
-                                ) {
-                                    Column {
+                                    headlineContent = {
                                         Text(
                                             text = list.name,
                                             style = MaterialTheme.typography.bodyLarge,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                        list.description?.takeIf { it.isNotBlank() }?.let {
+                                    },
+                                    supportingContent = list.description?.takeIf { it.isNotBlank() }?.let { description ->
+                                        {
                                             Text(
-                                                text = it,
+                                                text = description,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                    }
-                                }
+                                    },
+                                    colors = ListItemDefaults.colors(
+                                        containerColor = Color.Transparent
+                                    )
+                                )
                             }
                         }
                     }

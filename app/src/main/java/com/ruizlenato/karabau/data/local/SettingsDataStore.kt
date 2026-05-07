@@ -19,7 +19,6 @@ import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.Theme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "karabau_settings")
@@ -147,30 +146,6 @@ class SettingsDataStore(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences.remove(stringPreferencesKey("api_key"))
             preferences.remove(stringPreferencesKey("api_key_id"))
-        }
-    }
-
-    suspend fun setApiKey(apiKey: String, apiKeyId: String? = null) {
-        val securePrefs = encryptedPrefs
-
-        securePrefs?.edit()
-            ?.putString(KEY_API_KEY, apiKey)
-            ?.apply {
-                apiKeyId?.let { putString(KEY_API_KEY_ID, it) }
-            }
-            ?.apply()
-
-        if (securePrefs == null) {
-            context.dataStore.edit { preferences ->
-                preferences[stringPreferencesKey("api_key")] = apiKey
-                apiKeyId?.let { preferences[stringPreferencesKey("api_key_id")] = it }
-                    ?: preferences.remove(stringPreferencesKey("api_key_id"))
-            }
-        } else {
-            context.dataStore.edit { preferences ->
-                preferences.remove(stringPreferencesKey("api_key"))
-                preferences.remove(stringPreferencesKey("api_key_id"))
-            }
         }
     }
 

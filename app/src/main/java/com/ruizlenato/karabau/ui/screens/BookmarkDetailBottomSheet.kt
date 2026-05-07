@@ -1,7 +1,8 @@
 package com.ruizlenato.karabau.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -21,10 +22,8 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
@@ -40,8 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,7 +63,8 @@ fun BookmarkDetailBottomSheet(
     onToggleArchived: (BookmarkItem) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    val clipboardManager = remember(context) { context.getSystemService(ClipboardManager::class.java) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -74,7 +72,6 @@ fun BookmarkDetailBottomSheet(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         if (!bookmark.imageUrl.isNullOrBlank()) {
-            val context = LocalContext.current
             val imageRequest = remember(bookmark.imageUrl) {
                 ImageRequest.Builder(context)
                     .data(bookmark.imageUrl)
@@ -197,7 +194,7 @@ fun BookmarkDetailBottomSheet(
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = {
                         bookmark.linkUrl?.let { url ->
-                            clipboardManager.setText(AnnotatedString(url))
+                            clipboardManager?.setPrimaryClip(ClipData.newPlainText("bookmark_link", url))
                         }
                     }
                 )

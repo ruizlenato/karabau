@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.DEFAULT_SERVER_ADDRESS
 import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
-import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.isLoggedIn
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
@@ -66,14 +65,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onPasswordChange(password: String) {
         _uiState.update { it.copy(password = password, errorMessage = null) }
-    }
-
-    fun onApiKeyChange(apiKey: String) {
-        _uiState.update { it.copy(apiKey = apiKey, errorMessage = null) }
-    }
-
-    fun onLoginTypeChange(loginType: LoginType) {
-        _uiState.update { it.copy(loginType = loginType, errorMessage = null) }
     }
 
     fun onServerAddressChange(address: String) {
@@ -198,23 +189,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 }
-            }
-        }
-    }
-
-    fun logout() {
-        viewModelScope.launch {
-            val settings = settingsDataStore.settingsFlow.first()
-            if (settings.apiKeyId != null) {
-                repository.configure(settings)
-                repository.revokeKey(settings.apiKeyId)
-            }
-            settingsDataStore.clearAuth()
-            _uiState.update {
-                AuthUiState(
-                    serverAddress = settings.address,
-                    isLoggedIn = false
-                )
             }
         }
     }
