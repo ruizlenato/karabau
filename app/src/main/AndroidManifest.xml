@@ -30,6 +30,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.processtext.SaveBookmarkProcessTextActivity"
+            android:exported="true"
+            android:label="@string/save_bookmark"
+            android:theme="@style/Theme.Karabau.ProcessTextOverlay"
+        >
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

@@ -73,4 +73,20 @@
     <string name="server_address">Endereço do servidor</string>
     <string name="server_address_required">O endereço do servidor é obrigatório</string>
     <string name="server_address_invalid_scheme">O endereço do servidor deve começar com http:// ou https://</string>
+
+    <string name="save_bookmark">Salvar bookmark</string>
+    <string name="save_bookmark_dialog_title">Salvar bookmark</string>
+    <string name="save_bookmark_dialog_subtitle">Texto selecionado de outro app</string>
+    <string name="selected_link">Link selecionado</string>
+    <string name="selected_link_placeholder">https://exemplo.com</string>
+    <string name="title_optional">Título (opcional)</string>
+    <string name="note_optional">Nota (opcional)</string>
+    <string name="add_context_bookmark">Adicione um contexto para este bookmark</string>
+    <string name="cancel">Cancelar</string>
+    <string name="saving">Salvando…</string>
+    <string name="saved">Salvo</string>
+    <string name="process_text_invalid_link">Apenas links http(s) válidos podem ser salvos.</string>
+    <string name="process_text_login_required">Você precisa fazer login no Karabau primeiro.</string>
+    <string name="process_text_url_required">URL é obrigatória</string>
+    <string name="process_text_url_invalid">Digite uma URL http(s) válida</string>
 </resources>
