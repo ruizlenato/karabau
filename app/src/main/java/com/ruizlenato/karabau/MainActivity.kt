@@ -1,6 +1,7 @@
 package com.ruizlenato.karabau
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,13 +19,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.ruizlenato.karabau.ui.viewmodel.MainViewModel
 import com.ruizlenato.karabau.ui.screens.CreateBookmarkScreen
 import com.ruizlenato.karabau.ui.screens.HomeScreen
@@ -82,13 +88,24 @@ sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object ServerConfig : Screen("server_config")
     data object Home : Screen("home")
-    data object CreateBookmark : Screen("create_bookmark")
+    data object CreateBookmark : Screen("create_bookmark") {
+        const val ARG_INITIAL_URL = "initialUrl"
+        const val ROUTE_WITH_ARG = "create_bookmark?initialUrl={initialUrl}"
+
+        fun routeWithUrl(url: String): String {
+            return "create_bookmark?initialUrl=${android.net.Uri.encode(url)}"
+        }
+    }
 }
 
 class MainActivity : ComponentActivity() {
+    private var sharedUrl: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        sharedUrl = intent.getStringExtra(EXTRA_SHARED_URL)
 
         splashScreen.setKeepOnScreenCondition { true }
 
@@ -96,6 +113,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             KarabauTheme {
                 KarabauApp(
+                    initialSharedUrl = sharedUrl,
                     onReady = {
                         splashScreen.setKeepOnScreenCondition { false }
                     }
@@ -103,17 +121,28 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        sharedUrl = intent.getStringExtra(EXTRA_SHARED_URL)
+    }
+
+    companion object {
+        const val EXTRA_SHARED_URL = "extra_shared_url"
+    }
 }
 
 @OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
 fun KarabauApp(
+    initialSharedUrl: String?,
     onReady: () -> Unit
 ) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val mainViewModel: MainViewModel = viewModel()
     val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    var handledSharedUrl by rememberSaveable { mutableStateOf(false) }
 
     if (!mainUiState.isLoading) {
         LaunchedEffect(Unit) {
@@ -259,12 +288,20 @@ fun KarabauApp(
                     }
 
                     composable(
-                        route = Screen.CreateBookmark.route,
+                        route = Screen.CreateBookmark.ROUTE_WITH_ARG,
+                        arguments = listOf(
+                            navArgument(Screen.CreateBookmark.ARG_INITIAL_URL) {
+                                type = NavType.StringType
+                                defaultValue = ""
+                                nullable = true
+                            }
+                        ),
                         enterTransition = { EnterTransition.None },
                         exitTransition = { ExitTransition.None },
                         popEnterTransition = { EnterTransition.None },
                         popExitTransition = { ExitTransition.None }
                     ) {
+                        val initialUrl = it.arguments?.getString(Screen.CreateBookmark.ARG_INITIAL_URL).orEmpty()
                         CreateBookmarkScreen(
                             onBack = { navController.popBackStack() },
                             onSaved = {
@@ -274,9 +311,20 @@ fun KarabauApp(
                                 )
                                 navController.popBackStack()
                             },
+                            initialUrl = initialUrl,
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedContentScope = this@composable
                         )
+                    }
+                }
+            }
+
+            LaunchedEffect(mainUiState.isLoading, mainUiState.isLoggedIn, initialSharedUrl, handledSharedUrl) {
+                if (!mainUiState.isLoading && mainUiState.isLoggedIn && !handledSharedUrl) {
+                    val url = initialSharedUrl?.trim().orEmpty()
+                    if (url.isNotBlank()) {
+                        handledSharedUrl = true
+                        navController.navigate(Screen.CreateBookmark.routeWithUrl(url))
                     }
                 }
             }

@@ -75,6 +75,8 @@
     <string name="server_address_invalid_scheme">Server address must start with http:// or https://</string>
 
     <string name="save_bookmark">Save bookmark</string>
+    <string name="open_in_karabau">Open in Karabau</string>
+    <string name="open_popup">Open popup</string>
     <string name="save_bookmark_dialog_title">Save bookmark</string>
     <string name="save_bookmark_dialog_subtitle">Selected text from another app</string>
     <string name="selected_link">Selected link</string>

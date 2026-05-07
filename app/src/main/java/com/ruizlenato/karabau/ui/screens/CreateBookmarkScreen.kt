@@ -66,10 +66,11 @@ private const val SHARED_ELEMENT_KEY = "create_bookmark_container"
 fun CreateBookmarkScreen(
     onBack: () -> Unit,
     onSaved: () -> Unit,
+    initialUrl: String = "",
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope
 ) {
-    var url by rememberSaveable { mutableStateOf("") }
+    var url by rememberSaveable(initialUrl) { mutableStateOf(initialUrl) }
     var title by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
     var urlTouched by rememberSaveable { mutableStateOf(false) }

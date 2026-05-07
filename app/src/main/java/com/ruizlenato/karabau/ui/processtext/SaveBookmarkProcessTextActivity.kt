@@ -75,7 +75,11 @@ class SaveBookmarkProcessTextActivity : ComponentActivity() {
         val selectedText = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)
             ?.toString()
             ?.trim()
-            .orEmpty()
+            .takeUnless { it.isNullOrBlank() }
+            ?: intent.getCharSequenceExtra(Intent.EXTRA_TEXT)
+                ?.toString()
+                ?.trim()
+                .orEmpty()
 
         lifecycleScope.launch {
             val isLoggedIn = SettingsDataStore(applicationContext)

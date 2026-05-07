@@ -34,11 +34,29 @@
         <activity
             android:name=".ui.processtext.SaveBookmarkProcessTextActivity"
             android:exported="true"
-            android:label="@string/save_bookmark"
+            android:label="@string/open_popup"
             android:theme="@style/Theme.Karabau.ProcessTextOverlay"
         >
             <intent-filter>
                 <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.share.OpenInKarabauShareActivity"
+            android:exported="true"
+            android:label="@string/open_in_karabau"
+            android:theme="@style/Theme.Karabau.ProcessTextOverlay"
+        >
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
