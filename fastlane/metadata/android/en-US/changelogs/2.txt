@@ -1,0 +1,8 @@
+Version 1.1.0
+
+- Added Lists tab with detail view and pull-to-refresh
+- Added Favorites entry under Lists for quick access
+- Added favorite/unfavorite and delete actions in bookmark detail popup
+- Improved startup performance with faster cached content rendering
+- Added caching for profile, tag detail, and list detail content
+- Fixed duplicate loading indicators and polished key UI transitions

@@ -1,0 +1,10 @@
+Version 1.2.0
+
+- Added archive/unarchive action in bookmark detail bottom sheet
+- Added copy link quick action in the bottom sheet
+- Redesigned bottom sheet actions with a cleaner lightweight style
+- Added delete with Undo flow using snackbar
+- Improved navigation bar selected/unselected icon behavior (Material 3)
+- Added Archived Favorites preference in Settings and synced it with server settings
+- Applied archived visibility behavior to tag details, list details, and favorites
+- General loading and header polish improvements

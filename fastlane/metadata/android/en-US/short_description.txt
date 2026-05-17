@@ -1,0 +1,1 @@
+Native Android client for Karakeep to save, organize, and manage bookmarks.

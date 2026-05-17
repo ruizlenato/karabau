@@ -1,0 +1,8 @@
+Version 1.0.0
+
+- Initial stable release
+- Built with Jetpack Compose and Material 3
+- Login with email/password or API key
+- Browse, search, create, and open bookmarks
+- Tags support with filtered bookmark listing
+- Encrypted credential storage and HTTPS-only validation

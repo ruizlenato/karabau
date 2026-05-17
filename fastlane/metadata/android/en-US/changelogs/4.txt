@@ -1,0 +1,12 @@
+Version 1.3.0
+
+- Added quick-save from Android Share menu via a Compose overlay (Process Text/shared content flow)
+- Added dual share targets for faster bookmark saving from other apps
+- Refreshed the Welcome screen hero branding animation
+- Added a local setting to show/hide list icons and emojis
+- Added full Brazilian Portuguese (pt-BR) translation catalog
+- Localized onboarding, server setup, authentication, home, lists, tags, and settings
+- Normalized Settings item icon alignment and typography
+- Removed unnecessary experimental opt-ins
+- Cleaned lint warnings and dead code
+- Bumped app version to 1.3.0

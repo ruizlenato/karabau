@@ -1,0 +1,16 @@
+Karabau is an open-source Android client for Karakeep, built entirely with Jetpack Compose.
+
+Use it to keep your bookmarks in one place, with a native mobile experience focused on speed and simplicity.
+
+Features:
+- Browse your complete bookmark feed
+- Search bookmarks quickly
+- Manage tags and lists
+- Open bookmark details with quick actions (share, favorite, archive, delete)
+- Save links directly from Android share/process text flows
+- Secure credential storage on device
+
+Karabau connects to your own Karakeep server and helps you organize links from anywhere.
+
+Minimum Android version: 12 (API 31)
+License: GPL-3.0
