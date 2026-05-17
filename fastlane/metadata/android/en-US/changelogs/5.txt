@@ -1,0 +1,8 @@
+Version 1.3.1
+
+- Removed the Foojay Gradle toolchain resolver plugin to improve F-Droid build compatibility
+- Added a dedicated debug app variant with separate app ID, name suffix, and launcher branding
+- Added Android 13+ per-app language selection (English and Brazilian Portuguese)
+- Added Fastlane phone screenshots for store listing (welcome, home, popup, settings)
+- Updated Android Gradle Plugin and build setup refinements for release pipeline stability
+- Bumped app version to 1.3.1
