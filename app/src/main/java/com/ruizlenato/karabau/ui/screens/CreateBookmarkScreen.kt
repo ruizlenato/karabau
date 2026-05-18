@@ -32,16 +32,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +60,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.data.remote.ApiResult
+import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 import com.ruizlenato.karabau.ui.viewmodel.CreateBookmarkViewModel
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -76,15 +82,42 @@ fun CreateBookmarkScreen(
     var urlTouched by rememberSaveable { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+    var newTagInput by rememberSaveable { mutableStateOf("") }
+    var isCreateTagDialogOpen by rememberSaveable { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
     val createBookmarkViewModel: CreateBookmarkViewModel = viewModel()
+    val homeViewModel: HomeViewModel = viewModel()
+    val homeUiState by homeViewModel.uiState.collectAsState()
+    var selectedTags by rememberSaveable { mutableStateOf(setOf<String>()) }
+
+    LaunchedEffect(Unit) {
+        homeViewModel.loadTags()
+    }
 
     val urlError = when {
         !urlTouched -> null
         url.isBlank() -> "URL is required"
         !isValidHttpUrl(url) -> "Enter a valid http(s) URL"
         else -> null
+    }
+
+    fun addNewTagFromInput() {
+        val candidate = newTagInput.trim()
+        if (candidate.isBlank()) return
+
+        val alreadyInKnownTags = homeUiState.tags.any { it.name.equals(candidate, ignoreCase = true) }
+        val alreadySelected = selectedTags.any { it.equals(candidate, ignoreCase = true) }
+        if (!alreadySelected) {
+            val normalizedTag = homeUiState.tags.firstOrNull { it.name.equals(candidate, ignoreCase = true) }?.name
+                ?: candidate
+            selectedTags = selectedTags + normalizedTag
+        }
+
+        if (!alreadyInKnownTags) {
+            homeViewModel.loadTags()
+        }
+        newTagInput = ""
     }
 
     with(sharedTransitionScope) {
@@ -173,7 +206,8 @@ fun CreateBookmarkScreen(
                                             val result = createBookmarkViewModel.submitBookmark(
                                                 url = url,
                                                 title = title,
-                                                note = note
+                                                note = note,
+                                                tags = selectedTags.toList()
                                             )
                                             when (result) {
                                                 is ApiResult.Success -> onSaved()
@@ -242,6 +276,37 @@ fun CreateBookmarkScreen(
                             maxLines = 8
                         )
 
+                        Text(
+                            text = "Tags",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            AssistChip(
+                                onClick = { isCreateTagDialogOpen = true },
+                                label = { Text("+ New tag") }
+                            )
+
+                            homeUiState.tags.forEach { tag ->
+                                val isSelected = selectedTags.contains(tag.name)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        selectedTags = if (isSelected) {
+                                            selectedTags - tag.name
+                                        } else {
+                                            selectedTags + tag.name
+                                        }
+                                    },
+                                    label = { Text(tag.name) }
+                                )
+                            }
+                        }
+
                         saveError?.let { message ->
                             Text(
                                 text = message,
@@ -252,6 +317,37 @@ fun CreateBookmarkScreen(
                     }
                 }
             }
+        }
+
+        if (isCreateTagDialogOpen) {
+            AlertDialog(
+                onDismissRequest = { isCreateTagDialogOpen = false },
+                title = { Text("Create tag") },
+                text = {
+                    OutlinedTextField(
+                        value = newTagInput,
+                        onValueChange = { newTagInput = it },
+                        placeholder = { Text("example-tag") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            addNewTagFromInput()
+                            isCreateTagDialogOpen = false
+                        }
+                    ) {
+                        Text("Add")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { isCreateTagDialogOpen = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

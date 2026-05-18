@@ -14,14 +14,16 @@ class CreateBookmarkViewModel(application: Application) : AndroidViewModel(appli
     suspend fun submitBookmark(
         url: String,
         title: String,
-        note: String
+        note: String,
+        tags: List<String> = emptyList()
     ): ApiResult<Unit> {
         val settings = settingsDataStore.settingsFlow.first()
         repository.configure(settings)
         return repository.createLinkBookmark(
             url = url.trim(),
             title = title.trim().takeIf { it.isNotEmpty() },
-            note = note.trim().takeIf { it.isNotEmpty() }
+            note = note.trim().takeIf { it.isNotEmpty() },
+            tags = tags
         )
     }
 }

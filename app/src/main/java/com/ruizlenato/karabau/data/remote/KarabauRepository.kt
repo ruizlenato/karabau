@@ -219,7 +219,8 @@ class KarabauRepository {
     suspend fun createLinkBookmark(
         url: String,
         title: String? = null,
-        note: String? = null
+        note: String? = null,
+        tags: List<String> = emptyList()
     ): ApiResult<Unit> {
         val settings = currentSettings ?: return ApiResult.Error("NOT_CONFIGURED", "Repository not configured")
         if (!settings.isLoggedIn()) return ApiResult.Error("NOT_LOGGED_IN", "Not logged in")
@@ -231,7 +232,8 @@ class KarabauRepository {
                     json = CreateBookmarkRequest(
                         url = url.trim(),
                         title = title,
-                        note = note
+                        note = note,
+                        tags = tags.map { it.trim() }.filter { it.isNotBlank() }.distinct().ifEmpty { null }
                     )
                 )
             )

@@ -38,6 +38,7 @@ data class CreateBookmarkRequest(
     val url: String,
     val title: String? = null,
     val note: String? = null,
+    val tags: List<String>? = null,
     val source: String = "mobile"
 )
 
