@@ -15,6 +15,12 @@
     <string name="github_repo_desc">Repository with source code</string>
     <string name="donate">Donate</string>
     <string name="donate_desc">Support the project and ongoing development</string>
+    <string name="open_source_licenses">Open source licenses</string>
+    <string name="open_source_licenses_desc">Libraries and licenses used by this app</string>
+    <string name="app_license_title">App license</string>
+    <string name="app_license_desc">Karabau is free software licensed under GPL-3.0-only. You can view the source code and full license text in the project repository.</string>
+    <string name="third_party_licenses_title">Third-party libraries</string>
+    <string name="open_library_page">Open library page</string>
     <string name="version">Version</string>
 
     <string name="home_tab">Home</string>

@@ -19,6 +19,8 @@ kotlinxSerialization = "1.8.0"
 coreSplashscreen = "1.0.1"
 securityCrypto = "1.1.0-alpha06"
 coil = "2.7.0"
+ossLicenses = "17.1.0"
+aboutLibraries = "15.0.0-b01"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -62,8 +64,12 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 
 # Security
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+play-services-oss-licenses = { group = "com.google.android.gms", name = "play-services-oss-licenses", version.ref = "ossLicenses" }
+aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
+aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutLibraries" }

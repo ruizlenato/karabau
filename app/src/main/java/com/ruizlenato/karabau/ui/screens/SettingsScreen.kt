@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +48,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.core.net.toUri
+import com.ruizlenato.karabau.ui.licenses.OpenSourceLicensesActivity
 import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.ArchiveDisplayBehaviour
@@ -245,6 +247,19 @@ fun SettingsContent(
                 icon = { Icon(Icons.Outlined.VolunteerActivism, contentDescription = null) },
                 title = { Text(stringResource(R.string.donate)) },
                 subtitle = { Text(stringResource(R.string.donate_desc)) }
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            SegmentedItem(
+                position = SegmentedPosition.MIDDLE,
+                onClick = {
+                    val intent = android.content.Intent(context, OpenSourceLicensesActivity::class.java)
+                    context.startActivity(intent)
+                },
+                icon = { Icon(Icons.Outlined.Description, contentDescription = null) },
+                title = { Text(stringResource(R.string.open_source_licenses)) },
+                subtitle = { Text(stringResource(R.string.open_source_licenses_desc)) }
             )
 
             Spacer(modifier = Modifier.height(2.dp))

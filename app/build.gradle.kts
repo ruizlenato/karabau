@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.aboutlibraries)
 }
 
 android {
@@ -111,6 +112,8 @@ dependencies {
 
     // Security
     implementation(libs.androidx.security.crypto)
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose.m3)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

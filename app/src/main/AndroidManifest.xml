@@ -62,6 +62,13 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.licenses.OpenSourceLicensesActivity"
+            android:exported="false"
+            android:label="@string/open_source_licenses"
+            android:theme="@style/Theme.Karabau"
+        />
     </application>
 
 </manifest>
