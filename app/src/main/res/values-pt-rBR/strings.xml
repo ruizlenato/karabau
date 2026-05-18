@@ -97,4 +97,12 @@
     <string name="process_text_login_required">Você precisa fazer login no Karabau primeiro.</string>
     <string name="process_text_url_required">URL é obrigatória</string>
     <string name="process_text_url_invalid">Digite uma URL http(s) válida</string>
+    <string name="tags_label">Tags</string>
+    <string name="select_tags">Selecionar tags</string>
+    <string name="select_tags_count">Selecionar tags (%1$d)</string>
+    <string name="search_tags">Buscar tags</string>
+    <string name="new_tag_chip">+ Nova tag</string>
+    <string name="create_tag_title">Criar tag</string>
+    <string name="create_tag_placeholder">exemplo-tag</string>
+    <string name="add">Adicionar</string>
 </resources>

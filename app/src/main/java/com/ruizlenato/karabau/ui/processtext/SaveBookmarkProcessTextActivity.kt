@@ -29,15 +29,24 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +69,7 @@ import com.ruizlenato.karabau.data.model.isLoggedIn
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.ui.theme.KarabauTheme
 import com.ruizlenato.karabau.ui.viewmodel.CreateBookmarkViewModel
+import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -113,6 +123,7 @@ class SaveBookmarkProcessTextActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProcessTextBookmarkDialog(
     selectedText: String,
@@ -120,6 +131,8 @@ private fun ProcessTextBookmarkDialog(
 ) {
     val context = LocalContext.current
     val createBookmarkViewModel: CreateBookmarkViewModel = viewModel()
+    val homeViewModel: HomeViewModel = viewModel()
+    val homeUiState by homeViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
 
     var url by rememberSaveable(selectedText) { mutableStateOf(selectedText) }
@@ -129,6 +142,12 @@ private fun ProcessTextBookmarkDialog(
     var saveError by rememberSaveable { mutableStateOf<String?>(null) }
     var touched by rememberSaveable { mutableStateOf(false) }
     var panelVisible by remember { mutableStateOf(false) }
+    var selectedTags by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var newTagInput by rememberSaveable { mutableStateOf("") }
+    var isCreateTagDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var isSelectTagsSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var tagSearchQuery by rememberSaveable { mutableStateOf("") }
+    val tagSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val urlError = when {
         !touched -> null
@@ -147,6 +166,30 @@ private fun ProcessTextBookmarkDialog(
 
     LaunchedEffect(Unit) {
         panelVisible = true
+        homeViewModel.loadTags()
+    }
+
+    val filteredTags = remember(homeUiState.tags, tagSearchQuery) {
+        val q = tagSearchQuery.trim()
+        if (q.isBlank()) homeUiState.tags
+        else homeUiState.tags.filter { it.name.contains(q, ignoreCase = true) }
+    }
+
+    fun addNewTagFromInput() {
+        val candidate = newTagInput.trim()
+        if (candidate.isBlank()) return
+
+        val normalizedTag = homeUiState.tags
+            .firstOrNull { it.name.equals(candidate, ignoreCase = true) }
+            ?.name
+            ?: candidate
+
+        val alreadySelected = selectedTags.any { it.equals(candidate, ignoreCase = true) }
+        if (!alreadySelected) {
+            selectedTags = selectedTags + normalizedTag
+        }
+
+        newTagInput = ""
     }
 
     BackHandler(onBack = onClose)
@@ -250,6 +293,37 @@ private fun ProcessTextBookmarkDialog(
                         placeholder = { Text(stringResource(R.string.add_context_bookmark)) }
                     )
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = stringResource(R.string.tags_label),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = {
+                                tagSearchQuery = ""
+                                isSelectTagsSheetOpen = true
+                            },
+                            label = {
+                                Text(
+                                    if (selectedTags.isEmpty()) {
+                                        stringResource(R.string.select_tags)
+                                    } else {
+                                        stringResource(R.string.select_tags_count, selectedTags.size)
+                                    }
+                                )
+                            }
+                        )
+                    }
+
                     if (saveError != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -289,7 +363,7 @@ private fun ProcessTextBookmarkDialog(
                             scope.launch {
                                 isSaving = true
                                 saveError = null
-                                when (val result = createBookmarkViewModel.submitBookmark(url, title, note)) {
+                                when (val result = createBookmarkViewModel.submitBookmark(url, title, note, selectedTags.toList())) {
                                     is ApiResult.Success -> {
                                         Toast.makeText(context, context.getString(R.string.saved), Toast.LENGTH_SHORT).show()
                                         onClose()
@@ -307,6 +381,96 @@ private fun ProcessTextBookmarkDialog(
                         )
                     ) {
                         Text(if (isSaving) stringResource(R.string.saving) else stringResource(R.string.save_bookmark))
+                    }
+                }
+            }
+        }
+
+        if (isCreateTagDialogOpen) {
+            AlertDialog(
+                onDismissRequest = { isCreateTagDialogOpen = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurface,
+                title = { Text(stringResource(R.string.create_tag_title)) },
+                text = {
+                    OutlinedTextField(
+                        value = newTagInput,
+                        onValueChange = { newTagInput = it },
+                        placeholder = { Text(stringResource(R.string.create_tag_placeholder)) },
+                        singleLine = true
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            addNewTagFromInput()
+                            isCreateTagDialogOpen = false
+                        }
+                    ) {
+                        Text(stringResource(R.string.add))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { isCreateTagDialogOpen = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        if (isSelectTagsSheetOpen) {
+            ModalBottomSheet(
+                onDismissRequest = { isSelectTagsSheetOpen = false },
+                sheetState = tagSheetState
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.select_tags),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = tagSearchQuery,
+                        onValueChange = { tagSearchQuery = it },
+                        label = { Text(stringResource(R.string.search_tags)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(bottom = 20.dp)
+                    ) {
+                        AssistChip(
+                            onClick = { isCreateTagDialogOpen = true },
+                            label = { Text(stringResource(R.string.new_tag_chip)) }
+                        )
+
+                        filteredTags.forEach { tag ->
+                            val isSelected = selectedTags.contains(tag.name)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedTags = if (isSelected) {
+                                        selectedTags - tag.name
+                                    } else {
+                                        selectedTags + tag.name
+                                    }
+                                },
+                                label = { Text(tag.name) }
+                            )
+                        }
                     }
                 }
             }
