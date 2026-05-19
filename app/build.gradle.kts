@@ -33,8 +33,8 @@ android {
         applicationId = "com.ruizlenato.karabau"
         minSdk = 31
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.3.1"
+        versionCode = 6
+        versionName = "1.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

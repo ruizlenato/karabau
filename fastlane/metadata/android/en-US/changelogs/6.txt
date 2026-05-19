@@ -1,0 +1,7 @@
+Version 1.4.0
+
+- Added tag support when creating bookmarks
+- Added quick tag creation from bookmark creation flow
+- Improved process-text save popup with tag selector and search
+- Added tag selection count in popup and refined tag creation dialog styling
+- Improved F-Droid compatibility by disabling dependency metadata block in APK/AAB
