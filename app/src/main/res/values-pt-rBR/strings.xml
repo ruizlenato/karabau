@@ -101,6 +101,8 @@
     <string name="select_tags">Selecionar tags</string>
     <string name="select_tags_count">Selecionar tags (%1$d)</string>
     <string name="search_tags">Buscar tags</string>
+    <string name="show_more_tags">Mostrar mais %1$d</string>
+    <string name="show_less_tags">Mostrar menos</string>
     <string name="new_tag_chip">+ Nova tag</string>
     <string name="create_tag_title">Criar tag</string>
     <string name="create_tag_placeholder">exemplo-tag</string>

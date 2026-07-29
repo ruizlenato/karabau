@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -30,6 +31,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -40,6 +44,7 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -56,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -173,6 +179,7 @@ private fun ProcessTextBookmarkDialog(
     var isCreateTagDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isSelectTagsSheetOpen by rememberSaveable { mutableStateOf(false) }
     var tagSearchQuery by rememberSaveable { mutableStateOf("") }
+    var tagsExpanded by rememberSaveable { mutableStateOf(false) }
     val tagSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val urlError = when {
@@ -336,6 +343,7 @@ private fun ProcessTextBookmarkDialog(
                         AssistChip(
                             onClick = {
                                 tagSearchQuery = ""
+                                tagsExpanded = false
                                 isSelectTagsSheetOpen = true
                             },
                             label = {
@@ -473,6 +481,20 @@ private fun ProcessTextBookmarkDialog(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val visibleTags = if (tagsExpanded) {
+                        filteredTags
+                    } else {
+                        filteredTags.filterIndexed { index, tag ->
+                            index < COLLAPSED_TAG_LIMIT || selectedTags.contains(tag.name)
+                        }
+                    }
+                    val hiddenTagCount = filteredTags.size - visibleTags.size
+                    val chevronRotation by animateFloatAsState(
+                        targetValue = if (tagsExpanded) 180f else 0f,
+                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                        label = "tagsToggleChevron"
+                    )
+
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -483,7 +505,7 @@ private fun ProcessTextBookmarkDialog(
                             label = { Text(stringResource(R.string.new_tag_chip)) }
                         )
 
-                        filteredTags.forEach { tag ->
+                        visibleTags.forEach { tag ->
                             val isSelected = selectedTags.contains(tag.name)
                             FilterChip(
                                 selected = isSelected,
@@ -497,12 +519,38 @@ private fun ProcessTextBookmarkDialog(
                                 label = { Text(tag.name) }
                             )
                         }
+
+                        if (filteredTags.size > COLLAPSED_TAG_LIMIT && (tagsExpanded || hiddenTagCount > 0)) {
+                            AssistChip(
+                                onClick = { tagsExpanded = !tagsExpanded },
+                                label = {
+                                    Text(
+                                        if (tagsExpanded) {
+                                            stringResource(R.string.show_less_tags)
+                                        } else {
+                                            stringResource(R.string.show_more_tags, hiddenTagCount)
+                                        }
+                                    )
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .rotate(chevronRotation)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
+
+private const val COLLAPSED_TAG_LIMIT = 8
 
 private fun isValidHttpUrlFromProcessText(value: String): Boolean {
     val normalized = value.trim()
