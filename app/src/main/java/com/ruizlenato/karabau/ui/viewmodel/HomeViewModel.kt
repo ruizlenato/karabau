@@ -686,16 +686,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun scheduleCacheSave() {
+        // Capture a consistent snapshot at schedule time: reading selectedTag/List
+        // after the debounce could pair a newly opened tag/list with stale bookmarks.
+        val state = _uiState.value
+        val bookmarks = state.bookmarks
+        val tagId = state.selectedTag?.id
+        val tagBookmarks = state.tagBookmarks
+        val listId = state.selectedList?.id
+        val listBookmarks = state.listBookmarks
         cacheSaveJob?.cancel()
         cacheSaveJob = viewModelScope.launch {
             delay(CACHE_SAVE_DEBOUNCE_MS)
-            val state = _uiState.value
-            cacheManager.saveBookmarks(state.bookmarks)
-            state.selectedTag?.let { tag ->
-                cacheManager.saveTagBookmarks(tag.id, state.tagBookmarks)
+            cacheManager.saveBookmarks(bookmarks)
+            if (tagId != null) {
+                cacheManager.saveTagBookmarks(tagId, tagBookmarks)
             }
-            state.selectedList?.let { list ->
-                cacheManager.saveListBookmarks(list.id, state.listBookmarks)
+            if (listId != null) {
+                cacheManager.saveListBookmarks(listId, listBookmarks)
             }
         }
     }
