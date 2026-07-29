@@ -36,7 +36,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -88,36 +90,62 @@ class SaveBookmarkProcessTextActivity : ComponentActivity() {
                 ?.trim()
                 .orEmpty()
 
-        lifecycleScope.launch {
-            val isLoggedIn = SettingsDataStore(applicationContext)
-                .settingsFlow
-                .first()
-                .isLoggedIn()
-
-            if (!isLoggedIn) {
-                Toast.makeText(
-                    this@SaveBookmarkProcessTextActivity,
-                    getString(R.string.process_text_login_required),
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                startActivity(
-                    Intent(this@SaveBookmarkProcessTextActivity, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    }
+        setContent {
+            KarabauTheme {
+                ProcessTextBookmarkGate(
+                    selectedText = selectedText,
+                    onClose = { finish() }
                 )
-                finish()
-                return@launch
             }
+        }
+    }
+}
 
-            setContent {
-                KarabauTheme {
-                    ProcessTextBookmarkDialog(
-                        selectedText = selectedText,
-                        onClose = { finish() }
-                    )
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ProcessTextBookmarkGate(
+    selectedText: String,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(Unit) {
+        val loggedIn = SettingsDataStore(context.applicationContext)
+            .settingsFlow
+            .first()
+            .isLoggedIn()
+
+        if (!loggedIn) {
+            Toast.makeText(
+                context,
+                context.getString(R.string.process_text_login_required),
+                Toast.LENGTH_SHORT
+            ).show()
+
+            context.startActivity(
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 }
-            }
+            )
+            onClose()
+            return@LaunchedEffect
+        }
+
+        isLoggedIn = true
+    }
+
+    if (isLoggedIn == true) {
+        ProcessTextBookmarkDialog(
+            selectedText = selectedText,
+            onClose = onClose
+        )
+    } else {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            ContainedLoadingIndicator()
         }
     }
 }
