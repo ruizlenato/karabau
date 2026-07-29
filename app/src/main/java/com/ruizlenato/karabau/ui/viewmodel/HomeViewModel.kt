@@ -61,6 +61,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         const val FAVORITES_LIST_ID = "__favorites__"
+        private const val CACHE_SAVE_DEBOUNCE_MS = 500L
     }
 
     private val settingsDataStore = SettingsDataStore(application)
@@ -73,6 +74,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var searchDebounceJob: Job? = null
     private var tagDetailJob: Job? = null
     private var listDetailJob: Job? = null
+    private var cacheSaveJob: Job? = null
     private var hasLoadedItems = false
     private var hasLoadedTags = false
     private var hasLoadedLists = false
@@ -669,13 +671,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun applyBookmarkUpdate(updatedBookmark: BookmarkItem) {
-        var snapshotBookmarks: List<BookmarkItem> = emptyList()
-        var selectedTagId: String? = null
-        var selectedListId: String? = null
-        var snapshotTagBookmarks: List<BookmarkItem> = emptyList()
-        var snapshotListBookmarks: List<BookmarkItem> = emptyList()
+    private fun scheduleCacheSave() {
+        cacheSaveJob?.cancel()
+        cacheSaveJob = viewModelScope.launch {
+            delay(CACHE_SAVE_DEBOUNCE_MS)
+            val state = _uiState.value
+            cacheManager.saveBookmarks(state.bookmarks)
+            state.selectedTag?.let { tag ->
+                cacheManager.saveTagBookmarks(tag.id, state.tagBookmarks)
+            }
+            state.selectedList?.let { list ->
+                cacheManager.saveListBookmarks(list.id, state.listBookmarks)
+            }
+        }
+    }
 
+    private fun applyBookmarkUpdate(updatedBookmark: BookmarkItem) {
         _uiState.update { state ->
             val isFavoritesListOpen = state.selectedList?.id == FAVORITES_LIST_ID
 
@@ -699,12 +710,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-            snapshotBookmarks = bookmarksUpdated
-            selectedTagId = state.selectedTag?.id
-            selectedListId = state.selectedList?.id
-            snapshotTagBookmarks = tagBookmarksUpdated
-            snapshotListBookmarks = listBookmarksUpdated
-
             state.copy(
                 bookmarks = bookmarksUpdated,
                 displayedBookmarks = computeDisplayedBookmarks(
@@ -717,35 +722,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        if (snapshotBookmarks.isNotEmpty()) {
-            viewModelScope.launch { cacheManager.saveBookmarks(snapshotBookmarks) }
-        }
-        selectedTagId?.let { tagId ->
-            viewModelScope.launch { cacheManager.saveTagBookmarks(tagId, snapshotTagBookmarks) }
-        }
-        selectedListId?.let { listId ->
-            viewModelScope.launch { cacheManager.saveListBookmarks(listId, snapshotListBookmarks) }
-        }
+        scheduleCacheSave()
     }
 
     private fun applyBookmarkRemoval(bookmarkId: String) {
-        var snapshotBookmarks: List<BookmarkItem> = emptyList()
-        var selectedTagId: String? = null
-        var selectedListId: String? = null
-        var snapshotTagBookmarks: List<BookmarkItem> = emptyList()
-        var snapshotListBookmarks: List<BookmarkItem> = emptyList()
-
         _uiState.update { state ->
             val bookmarksUpdated = state.bookmarks.filterNot { it.id == bookmarkId }
             val tagBookmarksUpdated = state.tagBookmarks.filterNot { it.id == bookmarkId }
             val listBookmarksUpdated = state.listBookmarks.filterNot { it.id == bookmarkId }
 
-            snapshotBookmarks = bookmarksUpdated
-            selectedTagId = state.selectedTag?.id
-            selectedListId = state.selectedList?.id
-            snapshotTagBookmarks = tagBookmarksUpdated
-            snapshotListBookmarks = listBookmarksUpdated
-
             state.copy(
                 bookmarks = bookmarksUpdated,
                 displayedBookmarks = computeDisplayedBookmarks(
@@ -758,22 +743,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        viewModelScope.launch { cacheManager.saveBookmarks(snapshotBookmarks) }
-        selectedTagId?.let { tagId ->
-            viewModelScope.launch { cacheManager.saveTagBookmarks(tagId, snapshotTagBookmarks) }
-        }
-        selectedListId?.let { listId ->
-            viewModelScope.launch { cacheManager.saveListBookmarks(listId, snapshotListBookmarks) }
-        }
+        scheduleCacheSave()
     }
 
     private fun applyBookmarkRestore(bookmark: BookmarkItem) {
-        var snapshotBookmarks: List<BookmarkItem> = emptyList()
-        var selectedTagId: String? = null
-        var selectedListId: String? = null
-        var snapshotTagBookmarks: List<BookmarkItem> = emptyList()
-        var snapshotListBookmarks: List<BookmarkItem> = emptyList()
-
         _uiState.update { state ->
             val bookmarksUpdated = if (state.bookmarks.any { it.id == bookmark.id }) {
                 state.bookmarks
@@ -793,12 +766,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 state.listBookmarks
             }
 
-            snapshotBookmarks = bookmarksUpdated
-            selectedTagId = state.selectedTag?.id
-            selectedListId = state.selectedList?.id
-            snapshotTagBookmarks = tagBookmarksUpdated
-            snapshotListBookmarks = listBookmarksUpdated
-
             state.copy(
                 bookmarks = bookmarksUpdated,
                 displayedBookmarks = computeDisplayedBookmarks(
@@ -811,13 +778,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        viewModelScope.launch { cacheManager.saveBookmarks(snapshotBookmarks) }
-        selectedTagId?.let { tagId ->
-            viewModelScope.launch { cacheManager.saveTagBookmarks(tagId, snapshotTagBookmarks) }
-        }
-        selectedListId?.let { listId ->
-            viewModelScope.launch { cacheManager.saveListBookmarks(listId, snapshotListBookmarks) }
-        }
+        scheduleCacheSave()
     }
 
     private fun loadSelectedTagContent() {
