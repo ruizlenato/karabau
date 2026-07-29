@@ -46,7 +46,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.R
@@ -69,7 +69,6 @@ import com.ruizlenato.karabau.data.model.isLoggedIn
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.ui.theme.KarabauTheme
 import com.ruizlenato.karabau.ui.viewmodel.CreateBookmarkViewModel
-import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -131,8 +130,7 @@ private fun ProcessTextBookmarkDialog(
 ) {
     val context = LocalContext.current
     val createBookmarkViewModel: CreateBookmarkViewModel = viewModel()
-    val homeViewModel: HomeViewModel = viewModel()
-    val homeUiState by homeViewModel.uiState.collectAsState()
+    val tags by createBookmarkViewModel.tags.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     var url by rememberSaveable(selectedText) { mutableStateOf(selectedText) }
@@ -166,20 +164,20 @@ private fun ProcessTextBookmarkDialog(
 
     LaunchedEffect(Unit) {
         panelVisible = true
-        homeViewModel.loadTags()
+        createBookmarkViewModel.loadTags()
     }
 
-    val filteredTags = remember(homeUiState.tags, tagSearchQuery) {
+    val filteredTags = remember(tags, tagSearchQuery) {
         val q = tagSearchQuery.trim()
-        if (q.isBlank()) homeUiState.tags
-        else homeUiState.tags.filter { it.name.contains(q, ignoreCase = true) }
+        if (q.isBlank()) tags
+        else tags.filter { it.name.contains(q, ignoreCase = true) }
     }
 
     fun addNewTagFromInput() {
         val candidate = newTagInput.trim()
         if (candidate.isBlank()) return
 
-        val normalizedTag = homeUiState.tags
+        val normalizedTag = tags
             .firstOrNull { it.name.equals(candidate, ignoreCase = true) }
             ?.name
             ?: candidate

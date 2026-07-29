@@ -46,7 +46,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,9 +57,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ruizlenato.karabau.data.remote.ApiResult
-import com.ruizlenato.karabau.ui.viewmodel.HomeViewModel
 import com.ruizlenato.karabau.ui.viewmodel.CreateBookmarkViewModel
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -87,12 +86,11 @@ fun CreateBookmarkScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val createBookmarkViewModel: CreateBookmarkViewModel = viewModel()
-    val homeViewModel: HomeViewModel = viewModel()
-    val homeUiState by homeViewModel.uiState.collectAsState()
+    val tags by createBookmarkViewModel.tags.collectAsStateWithLifecycle()
     var selectedTags by rememberSaveable { mutableStateOf(setOf<String>()) }
 
     LaunchedEffect(Unit) {
-        homeViewModel.loadTags()
+        createBookmarkViewModel.loadTags()
     }
 
     val urlError = when {
@@ -106,16 +104,16 @@ fun CreateBookmarkScreen(
         val candidate = newTagInput.trim()
         if (candidate.isBlank()) return
 
-        val alreadyInKnownTags = homeUiState.tags.any { it.name.equals(candidate, ignoreCase = true) }
+        val alreadyInKnownTags = tags.any { it.name.equals(candidate, ignoreCase = true) }
         val alreadySelected = selectedTags.any { it.equals(candidate, ignoreCase = true) }
         if (!alreadySelected) {
-            val normalizedTag = homeUiState.tags.firstOrNull { it.name.equals(candidate, ignoreCase = true) }?.name
+            val normalizedTag = tags.firstOrNull { it.name.equals(candidate, ignoreCase = true) }?.name
                 ?: candidate
             selectedTags = selectedTags + normalizedTag
         }
 
         if (!alreadyInKnownTags) {
-            homeViewModel.loadTags()
+            createBookmarkViewModel.loadTags()
         }
         newTagInput = ""
     }
@@ -291,7 +289,7 @@ fun CreateBookmarkScreen(
                                 label = { Text("+ New tag") }
                             )
 
-                            homeUiState.tags.forEach { tag ->
+                            tags.forEach { tag ->
                                 val isSelected = selectedTags.contains(tag.name)
                                 FilterChip(
                                     selected = isSelected,
