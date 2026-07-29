@@ -287,17 +287,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onSearchActiveChange(active: Boolean) {
-        val displayed = computeDisplayedBookmarks(
-            bookmarks = _uiState.value.bookmarks,
-            query = _uiState.value.searchQuery,
-            isSearchActive = active
-        )
         _uiState.update { state ->
-            state.copy(
-                isSearchActive = active
-            )
+            state.copy(isSearchActive = active)
         }
-        _displayedBookmarks.value = displayed.toImmutableList()
+        viewModelScope.launch {
+            val bookmarks = _uiState.value.bookmarks
+            val query = _uiState.value.searchQuery
+            val displayed = withContext(Dispatchers.Default) {
+                computeDisplayedBookmarks(
+                    bookmarks = bookmarks,
+                    query = query,
+                    isSearchActive = active
+                )
+            }
+            _displayedBookmarks.value = displayed.toImmutableList()
+        }
     }
 
     fun loadTags() {
