@@ -12,6 +12,12 @@ import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -32,11 +38,10 @@ data class HomeUiState(
     val isTagsRefreshing: Boolean = false,
     val isListsLoading: Boolean = false,
     val isListsRefreshing: Boolean = false,
-    val bookmarks: List<BookmarkItem> = emptyList(),
-    val displayedBookmarks: List<BookmarkItem> = emptyList(),
-    val tags: List<TagItem> = emptyList(),
+    val bookmarks: ImmutableList<BookmarkItem> = persistentListOf(),
+    val tags: ImmutableList<TagItem> = persistentListOf(),
     val tagsErrorMessage: String? = null,
-    val lists: List<SavedListItem> = emptyList(),
+    val lists: ImmutableList<SavedListItem> = persistentListOf(),
     val listsErrorMessage: String? = null,
     val selectedTag: TagItem? = null,
     val selectedTagDetails: TagItem? = null,
@@ -44,15 +49,15 @@ data class HomeUiState(
     val selectedListDetails: SavedListItem? = null,
     val isTagBookmarksLoading: Boolean = false,
     val isListBookmarksLoading: Boolean = false,
-    val tagBookmarks: List<BookmarkItem> = emptyList(),
-    val listBookmarks: List<BookmarkItem> = emptyList(),
+    val tagBookmarks: ImmutableList<BookmarkItem> = persistentListOf(),
+    val listBookmarks: ImmutableList<BookmarkItem> = persistentListOf(),
     val tagBookmarksErrorMessage: String? = null,
     val listBookmarksErrorMessage: String? = null,
     val searchQuery: String = "",
     val isSearchActive: Boolean = false,
     val profileName: String? = null,
     val profileImage: String? = null,
-    val profileImageHeaders: Map<String, String> = emptyMap(),
+    val profileImageHeaders: ImmutableMap<String, String> = persistentMapOf(),
     val hasCompletedInitialBookmarksLoad: Boolean = false,
     val errorMessage: String? = null
 )
@@ -83,6 +88,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val _displayedBookmarks = MutableStateFlow<ImmutableList<BookmarkItem>>(persistentListOf())
+    val displayedBookmarks: StateFlow<ImmutableList<BookmarkItem>> = _displayedBookmarks.asStateFlow()
+
     fun loadSavedItems() {
         if (hasLoadedItems && _uiState.value.bookmarks.isNotEmpty()) return
         viewModelScope.launch {
@@ -91,16 +99,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (_uiState.value.bookmarks.isEmpty()) {
                 val cached = cacheManager.loadCachedBookmarks()
                 if (!cached.isNullOrEmpty()) {
+                    val displayed = computeDisplayedBookmarks(
+                        bookmarks = cached,
+                        query = _uiState.value.searchQuery,
+                        isSearchActive = _uiState.value.isSearchActive
+                    )
                     _uiState.update {
                         it.copy(
-                            bookmarks = cached,
-                            displayedBookmarks = computeDisplayedBookmarks(
-                                bookmarks = cached,
-                                query = it.searchQuery,
-                                isSearchActive = it.isSearchActive
-                            )
+                            bookmarks = cached.toImmutableList()
                         )
                     }
+                    _displayedBookmarks.value = displayed.toImmutableList()
                 }
             }
 
@@ -120,7 +129,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     it.copy(
                         profileName = cachedProfile.profileName,
                         profileImage = profileImage,
-                        profileImageHeaders = profileImageHeaders
+                        profileImageHeaders = profileImageHeaders.toImmutableMap()
                     )
                 }
             }
@@ -189,7 +198,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     it.copy(
                         profileName = userResult.data.name,
                         profileImage = profileImage,
-                        profileImageHeaders = profileImageHeaders
+                        profileImageHeaders = profileImageHeaders.toImmutableMap()
                     )
                 }
 
@@ -214,21 +223,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         when (bookmarksResult) {
             is ApiResult.Success -> {
                 hasLoadedItems = true
+                val bookmarksData = bookmarksResult.data
+                val displayed = computeDisplayedBookmarks(
+                    bookmarks = bookmarksData,
+                    query = _uiState.value.searchQuery,
+                    isSearchActive = _uiState.value.isSearchActive
+                )
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        bookmarks = bookmarksResult.data,
-                        displayedBookmarks = computeDisplayedBookmarks(
-                            bookmarks = bookmarksResult.data,
-                            query = it.searchQuery,
-                            isSearchActive = it.isSearchActive
-                        ),
+                        bookmarks = bookmarksData.toImmutableList(),
                         hasCompletedInitialBookmarksLoad = true,
                         errorMessage = null
                     )
                 }
-                viewModelScope.launch { cacheManager.saveBookmarks(bookmarksResult.data) }
+                _displayedBookmarks.value = displayed.toImmutableList()
+                viewModelScope.launch { cacheManager.saveBookmarks(bookmarksData) }
             }
 
             is ApiResult.Error -> {
@@ -271,23 +282,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     isSearchActive = isSearchActive
                 )
             }
-            _uiState.update { state ->
-                state.copy(displayedBookmarks = displayed)
-            }
+            _displayedBookmarks.value = displayed.toImmutableList()
         }
     }
 
     fun onSearchActiveChange(active: Boolean) {
+        val displayed = computeDisplayedBookmarks(
+            bookmarks = _uiState.value.bookmarks,
+            query = _uiState.value.searchQuery,
+            isSearchActive = active
+        )
         _uiState.update { state ->
             state.copy(
-                isSearchActive = active,
-                displayedBookmarks = computeDisplayedBookmarks(
-                    bookmarks = state.bookmarks,
-                    query = state.searchQuery,
-                    isSearchActive = active
-                )
+                isSearchActive = active
             )
         }
+        _displayedBookmarks.value = displayed.toImmutableList()
     }
 
     fun loadTags() {
@@ -296,7 +306,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (_uiState.value.tags.isEmpty()) {
                 val cached = cacheManager.loadCachedTags()
                 if (!cached.isNullOrEmpty()) {
-                    _uiState.update { it.copy(tags = cached) }
+                    _uiState.update { it.copy(tags = cached.toImmutableList()) }
                 }
             }
             loadTagsInternal(isRefresh = false)
@@ -337,7 +347,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isListsLoading = false,
                             isListsRefreshing = false,
-                            lists = result.data,
+                            lists = result.data.toImmutableList(),
                             listsErrorMessage = null
                         )
                     }
@@ -393,7 +403,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(
                             isTagsLoading = false,
                             isTagsRefreshing = false,
-                            tags = result.data,
+                            tags = result.data.toImmutableList(),
                             tagsErrorMessage = null
                         )
                     }
@@ -430,7 +440,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 selectedTag = tag,
                 selectedTagDetails = null,
                 isTagBookmarksLoading = true,
-                tagBookmarks = emptyList(),
+                tagBookmarks = persistentListOf(),
                 tagBookmarksErrorMessage = null
             )
         }
@@ -444,7 +454,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 selectedTag = null,
                 selectedTagDetails = null,
                 isTagBookmarksLoading = false,
-                tagBookmarks = emptyList(),
+                tagBookmarks = persistentListOf(),
                 tagBookmarksErrorMessage = null
             )
         }
@@ -463,7 +473,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 selectedList = list,
                 selectedListDetails = null,
                 isListBookmarksLoading = true,
-                listBookmarks = emptyList(),
+                listBookmarks = persistentListOf(),
                 listBookmarksErrorMessage = null
             )
         }
@@ -556,7 +566,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 selectedList = null,
                 selectedListDetails = null,
                 isListBookmarksLoading = false,
-                listBookmarks = emptyList(),
+                listBookmarks = persistentListOf(),
                 listBookmarksErrorMessage = null
             )
         }
@@ -578,7 +588,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (_uiState.value.listBookmarks.isEmpty()) {
                 cacheManager.loadCachedListBookmarks(selectedList.id)?.takeIf { it.isNotEmpty() }?.let { cached ->
                     if (_uiState.value.selectedList?.id == selectedList.id) {
-                        _uiState.update { it.copy(listBookmarks = applyArchiveFilter(cached, archivedFilter)) }
+                        _uiState.update { it.copy(listBookmarks = applyArchiveFilter(cached, archivedFilter).toImmutableList()) }
                     }
                 }
             }
@@ -643,7 +653,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isListBookmarksLoading = false,
-                            listBookmarks = filteredBookmarks,
+                            listBookmarks = filteredBookmarks.toImmutableList(),
                             listBookmarksErrorMessage = null
                         )
                     }
@@ -687,6 +697,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun applyBookmarkUpdate(updatedBookmark: BookmarkItem) {
+        var newDisplayed: List<BookmarkItem> = _displayedBookmarks.value
         _uiState.update { state ->
             val isFavoritesListOpen = state.selectedList?.id == FAVORITES_LIST_ID
 
@@ -710,43 +721,49 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-            state.copy(
+            newDisplayed = computeDisplayedBookmarks(
                 bookmarks = bookmarksUpdated,
-                displayedBookmarks = computeDisplayedBookmarks(
-                    bookmarks = bookmarksUpdated,
-                    query = state.searchQuery,
-                    isSearchActive = state.isSearchActive
-                ),
-                tagBookmarks = tagBookmarksUpdated,
-                listBookmarks = listBookmarksUpdated
+                query = state.searchQuery,
+                isSearchActive = state.isSearchActive
+            )
+
+            state.copy(
+                bookmarks = bookmarksUpdated.toImmutableList(),
+                tagBookmarks = tagBookmarksUpdated.toImmutableList(),
+                listBookmarks = listBookmarksUpdated.toImmutableList()
             )
         }
+        _displayedBookmarks.value = newDisplayed.toImmutableList()
 
         scheduleCacheSave()
     }
 
     private fun applyBookmarkRemoval(bookmarkId: String) {
+        var newDisplayed: List<BookmarkItem> = _displayedBookmarks.value
         _uiState.update { state ->
             val bookmarksUpdated = state.bookmarks.filterNot { it.id == bookmarkId }
             val tagBookmarksUpdated = state.tagBookmarks.filterNot { it.id == bookmarkId }
             val listBookmarksUpdated = state.listBookmarks.filterNot { it.id == bookmarkId }
 
-            state.copy(
+            newDisplayed = computeDisplayedBookmarks(
                 bookmarks = bookmarksUpdated,
-                displayedBookmarks = computeDisplayedBookmarks(
-                    bookmarks = bookmarksUpdated,
-                    query = state.searchQuery,
-                    isSearchActive = state.isSearchActive
-                ),
-                tagBookmarks = tagBookmarksUpdated,
-                listBookmarks = listBookmarksUpdated
+                query = state.searchQuery,
+                isSearchActive = state.isSearchActive
+            )
+
+            state.copy(
+                bookmarks = bookmarksUpdated.toImmutableList(),
+                tagBookmarks = tagBookmarksUpdated.toImmutableList(),
+                listBookmarks = listBookmarksUpdated.toImmutableList()
             )
         }
+        _displayedBookmarks.value = newDisplayed.toImmutableList()
 
         scheduleCacheSave()
     }
 
     private fun applyBookmarkRestore(bookmark: BookmarkItem) {
+        var newDisplayed: List<BookmarkItem> = _displayedBookmarks.value
         _uiState.update { state ->
             val bookmarksUpdated = if (state.bookmarks.any { it.id == bookmark.id }) {
                 state.bookmarks
@@ -766,17 +783,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 state.listBookmarks
             }
 
-            state.copy(
+            newDisplayed = computeDisplayedBookmarks(
                 bookmarks = bookmarksUpdated,
-                displayedBookmarks = computeDisplayedBookmarks(
-                    bookmarks = bookmarksUpdated,
-                    query = state.searchQuery,
-                    isSearchActive = state.isSearchActive
-                ),
-                tagBookmarks = tagBookmarksUpdated,
-                listBookmarks = listBookmarksUpdated
+                query = state.searchQuery,
+                isSearchActive = state.isSearchActive
+            )
+
+            state.copy(
+                bookmarks = bookmarksUpdated.toImmutableList(),
+                tagBookmarks = tagBookmarksUpdated.toImmutableList(),
+                listBookmarks = listBookmarksUpdated.toImmutableList()
             )
         }
+        _displayedBookmarks.value = newDisplayed.toImmutableList()
 
         scheduleCacheSave()
     }
@@ -791,7 +810,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (_uiState.value.tagBookmarks.isEmpty()) {
                 cacheManager.loadCachedTagBookmarks(selectedTag.id)?.takeIf { it.isNotEmpty() }?.let { cached ->
                     if (_uiState.value.selectedTag?.id == selectedTag.id) {
-                        _uiState.update { it.copy(tagBookmarks = applyArchiveFilter(cached, archivedFilter)) }
+                        _uiState.update { it.copy(tagBookmarks = applyArchiveFilter(cached, archivedFilter).toImmutableList()) }
                     }
                 }
             }
@@ -851,7 +870,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isTagBookmarksLoading = false,
-                            tagBookmarks = filteredBookmarks,
+                            tagBookmarks = filteredBookmarks.toImmutableList(),
                             tagBookmarksErrorMessage = null
                         )
                     }

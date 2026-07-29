@@ -112,6 +112,7 @@ fun HomeScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val homeViewModel: HomeViewModel = viewModel()
     val homeUiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    val displayedBookmarks by homeViewModel.displayedBookmarks.collectAsStateWithLifecycle()
     var selectedBookmark by remember { mutableStateOf<BookmarkItem?>(null) }
     val context = LocalContext.current
     val settingsDataStore = remember(context) { SettingsDataStore(context.applicationContext) }
@@ -336,7 +337,7 @@ fun HomeScreen(
                             isRefreshing = homeUiState.isRefreshing,
                             hasCompletedInitialLoad = homeUiState.hasCompletedInitialBookmarksLoad,
                             errorMessage = homeUiState.errorMessage,
-                            bookmarks = homeUiState.displayedBookmarks,
+                            bookmarks = displayedBookmarks,
                             isSearchActive = homeUiState.isSearchActive,
                             searchQuery = homeUiState.searchQuery,
                             onRetry = { homeViewModel.loadSavedItems() },
