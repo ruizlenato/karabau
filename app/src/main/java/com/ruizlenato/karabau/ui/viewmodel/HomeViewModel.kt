@@ -12,6 +12,7 @@ import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.data.model.TagItem
 import com.ruizlenato.karabau.data.remote.ApiResult
 import com.ruizlenato.karabau.data.remote.KarabauRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -258,14 +260,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         searchDebounceJob?.cancel()
         searchDebounceJob = viewModelScope.launch {
             delay(300)
-            _uiState.update { state ->
-                state.copy(
-                    displayedBookmarks = computeDisplayedBookmarks(
-                        bookmarks = state.bookmarks,
-                        query = query,
-                        isSearchActive = state.isSearchActive
-                    )
+            val bookmarks = _uiState.value.bookmarks
+            val isSearchActive = _uiState.value.isSearchActive
+            val displayed = withContext(Dispatchers.Default) {
+                computeDisplayedBookmarks(
+                    bookmarks = bookmarks,
+                    query = query,
+                    isSearchActive = isSearchActive
                 )
+            }
+            _uiState.update { state ->
+                state.copy(displayedBookmarks = displayed)
             }
         }
     }

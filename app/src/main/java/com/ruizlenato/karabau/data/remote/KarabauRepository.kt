@@ -20,7 +20,9 @@ import com.ruizlenato.karabau.data.model.isLoggedIn
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -68,19 +70,21 @@ class KarabauRepository {
     private fun requireSettings(): Settings =
         currentSettings ?: throw IllegalStateException("KarabauRepository not configured. Call configure() first.")
 
-    private inline fun <T> safeApiCall(
-        block: () -> ApiResult<T>
+    private suspend inline fun <T> safeApiCall(
+        crossinline block: suspend () -> ApiResult<T>
     ): ApiResult<T> {
-        return try {
-            block()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: HttpException) {
-            ApiResult.Error("HTTP_ERROR", e.message ?: "HTTP error")
-        } catch (e: IOException) {
-            ApiResult.NetworkError(e.message ?: "Network error")
-        } catch (e: Exception) {
-            ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
+        return withContext(Dispatchers.IO) {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: HttpException) {
+                ApiResult.Error("HTTP_ERROR", e.message ?: "HTTP error")
+            } catch (e: IOException) {
+                ApiResult.NetworkError(e.message ?: "Network error")
+            } catch (e: Exception) {
+                ApiResult.Error("EXCEPTION", e.message ?: "Unknown error")
+            }
         }
     }
 
