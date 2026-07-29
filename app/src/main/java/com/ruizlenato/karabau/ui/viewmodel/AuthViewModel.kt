@@ -3,6 +3,7 @@ package com.ruizlenato.karabau.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ruizlenato.karabau.data.local.SecureStorageUnavailableException
 import com.ruizlenato.karabau.data.local.SettingsDataStore
 import com.ruizlenato.karabau.data.model.DEFAULT_SERVER_ADDRESS
 import com.ruizlenato.karabau.data.model.ExchangeKeyResponse
@@ -130,32 +131,42 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
             when (result) {
                 is ApiResult.Success -> {
-                    if (currentState.loginType == LoginType.PASSWORD) {
-                        val data = result.data as? ExchangeKeyResponse
-                        if (data == null) {
-                            _uiState.update {
-                                it.copy(
-                                    authState = AuthState.ERROR,
-                                    errorMessage = "Unexpected response from server"
-                                )
+                    val newSettings = when (currentState.loginType) {
+                        LoginType.PASSWORD -> {
+                            val data = result.data as? ExchangeKeyResponse
+                            if (data == null) {
+                                _uiState.update {
+                                    it.copy(
+                                        authState = AuthState.ERROR,
+                                        errorMessage = "Unexpected response from server"
+                                    )
+                                }
+                                return@launch
                             }
-                            return@launch
+                            settings.copy(
+                                address = currentState.serverAddress,
+                                apiKey = data.key,
+                                apiKeyId = data.id
+                            )
                         }
-                        val newSettings = settings.copy(
-                            address = currentState.serverAddress,
-                            apiKey = data.key,
-                            apiKeyId = data.id
-                        )
-                        settingsDataStore.updateSettings(newSettings)
-                        repository.configure(newSettings)
-                    } else {
-                        val newSettings = settings.copy(
+
+                        LoginType.API_KEY -> settings.copy(
                             address = currentState.serverAddress,
                             apiKey = currentState.apiKey
                         )
-                        settingsDataStore.updateSettings(newSettings)
-                        repository.configure(newSettings)
                     }
+                    try {
+                        settingsDataStore.updateSettings(newSettings)
+                    } catch (e: SecureStorageUnavailableException) {
+                        _uiState.update {
+                            it.copy(
+                                authState = AuthState.ERROR,
+                                errorMessage = "Secure storage is unavailable on this device; credentials cannot be saved"
+                            )
+                        }
+                        return@launch
+                    }
+                    repository.configure(newSettings)
                     _uiState.update {
                         it.copy(
                             authState = AuthState.SUCCESS,

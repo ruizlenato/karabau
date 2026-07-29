@@ -23,6 +23,8 @@ import kotlinx.serialization.json.Json
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "karabau_settings")
 
+class SecureStorageUnavailableException(message: String) : Exception(message)
+
 class SettingsDataStore(private val context: Context) {
 
     companion object {
@@ -80,9 +82,7 @@ class SettingsDataStore(private val context: Context) {
 
     val settingsFlow: Flow<Settings> = context.dataStore.data.map { preferences ->
         val apiKey = getEncryptedApiKey()
-            ?: preferences[stringPreferencesKey("api_key")]?.takeIf { it.isNotBlank() }
         val apiKeyId = getEncryptedApiKeyId()
-            ?: preferences[stringPreferencesKey("api_key_id")]?.takeIf { it.isNotBlank() }
 
         Settings(
             apiKey = apiKey,
@@ -107,21 +107,22 @@ class SettingsDataStore(private val context: Context) {
     suspend fun updateSettings(settings: Settings) {
         val securePrefs = encryptedPrefs
 
+        if (securePrefs == null && (settings.apiKey != null || settings.apiKeyId != null)) {
+            throw SecureStorageUnavailableException(
+                "Encrypted storage is unavailable; refusing to store credentials in plaintext"
+            )
+        }
+
         securePrefs?.edit()
             ?.putString(KEY_API_KEY, settings.apiKey ?: "")
             ?.putString(KEY_API_KEY_ID, settings.apiKeyId ?: "")
             ?.apply()
 
         context.dataStore.edit { preferences ->
-            if (securePrefs == null) {
-                settings.apiKey?.let { preferences[stringPreferencesKey("api_key")] = it }
-                    ?: preferences.remove(stringPreferencesKey("api_key"))
-                settings.apiKeyId?.let { preferences[stringPreferencesKey("api_key_id")] = it }
-                    ?: preferences.remove(stringPreferencesKey("api_key_id"))
-            } else {
-                preferences.remove(stringPreferencesKey("api_key"))
-                preferences.remove(stringPreferencesKey("api_key_id"))
-            }
+            // Credentials only ever live in EncryptedSharedPreferences;
+            // remove any legacy plaintext copies.
+            preferences.remove(stringPreferencesKey("api_key"))
+            preferences.remove(stringPreferencesKey("api_key_id"))
             preferences[ADDRESS] = settings.address
             preferences[IMAGE_QUALITY] = settings.imageQuality
             preferences[THEME] = settings.theme.name
