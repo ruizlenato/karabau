@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,7 +63,8 @@ import androidx.compose.runtime.LaunchedEffect
 @Composable
 fun SettingsContent(
     onLogout: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onCustomHeadersClick: () -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
@@ -130,6 +132,18 @@ fun SettingsContent(
                     )
                 },
                 title = { Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.error) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SettingsCategory(title = stringResource(R.string.settings_server))
+            Spacer(modifier = Modifier.height(2.dp))
+            SegmentedItem(
+                position = SegmentedPosition.SINGLE,
+                onClick = onCustomHeadersClick,
+                icon = { Icon(Icons.Outlined.Dns, contentDescription = null) },
+                title = { Text(stringResource(R.string.custom_headers_title)) },
+                subtitle = { Text(stringResource(R.string.custom_headers_desc)) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))

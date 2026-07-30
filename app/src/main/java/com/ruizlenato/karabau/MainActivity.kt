@@ -22,10 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -33,14 +35,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ruizlenato.karabau.data.local.SettingsDataStore
+import com.ruizlenato.karabau.data.model.Settings
 import com.ruizlenato.karabau.ui.viewmodel.MainViewModel
 import com.ruizlenato.karabau.ui.screens.CreateBookmarkScreen
+import com.ruizlenato.karabau.ui.screens.CustomHeadersScreen
 import com.ruizlenato.karabau.ui.screens.HomeScreen
 import com.ruizlenato.karabau.ui.screens.LoginScreen
 import com.ruizlenato.karabau.ui.screens.ServerConfigScreen
 import com.ruizlenato.karabau.ui.screens.WelcomeScreen
 import com.ruizlenato.karabau.ui.theme.KarabauTheme
 import com.ruizlenato.karabau.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private const val ForwardBackwardDuration = 450
@@ -98,6 +104,8 @@ sealed class Screen(val route: String) {
             return "create_bookmark?initialUrl=${android.net.Uri.encode(url)}"
         }
     }
+
+    data object CustomHeaders : Screen("custom_headers")
 }
 
 class MainActivity : ComponentActivity() {
@@ -207,6 +215,9 @@ fun KarabauApp(
                                     }
                                 }
                             },
+                            onCustomHeadersClick = {
+                                navController.navigate(Screen.CustomHeaders.route)
+                            },
                             currentAddress = uiState.serverAddress
                         )
                     }
@@ -288,6 +299,9 @@ fun KarabauApp(
                             onAddBookmark = {
                                 navController.navigate(Screen.CreateBookmark.route)
                             },
+                            onManageCustomHeaders = {
+                                navController.navigate(Screen.CustomHeaders.route)
+                            },
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedContentScope = this@composable,
                             savedStateHandle = it.savedStateHandle
@@ -322,6 +336,38 @@ fun KarabauApp(
                             initialUrl = initialUrl,
                             sharedTransitionScope = this@SharedTransitionLayout,
                             animatedContentScope = this@composable
+                        )
+                    }
+
+                    composable(
+                        route = Screen.CustomHeaders.route,
+                        enterTransition = { forwardEnter() },
+                        exitTransition = { forwardExit() },
+                        popEnterTransition = { backwardEnter() },
+                        popExitTransition = { backwardExit() }
+                    ) {
+                        val context = LocalContext.current
+                        val settingsDataStore = remember(context) { SettingsDataStore(context.applicationContext) }
+                        val settings by settingsDataStore.settingsFlow.collectAsStateWithLifecycle(initialValue = Settings())
+                        CustomHeadersScreen(
+                            headers = settings.customHeaders,
+                            onAddHeader = { name, value ->
+                                coroutineScope.launch {
+                                    val current = settingsDataStore.settingsFlow.first()
+                                    settingsDataStore.updateSettings(
+                                        current.copy(customHeaders = current.customHeaders + (name to value))
+                                    )
+                                }
+                            },
+                            onDeleteHeader = { name ->
+                                coroutineScope.launch {
+                                    val current = settingsDataStore.settingsFlow.first()
+                                    settingsDataStore.updateSettings(
+                                        current.copy(customHeaders = current.customHeaders - name)
+                                    )
+                                }
+                            },
+                            onBack = { navController.popBackStack() }
                         )
                     }
                 }

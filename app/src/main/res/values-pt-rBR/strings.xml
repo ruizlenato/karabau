@@ -4,6 +4,7 @@
     <string name="settings_title">Configurações</string>
     <string name="back">Voltar</string>
     <string name="settings_account">Conta</string>
+    <string name="settings_server">Servidor</string>
     <string name="logout">Sair</string>
     <string name="settings_bookmarks">Bookmarks</string>
     <string name="archived_favorites">Favoritos arquivados</string>
@@ -109,4 +110,11 @@
     <string name="create_tag_title">Criar tag</string>
     <string name="create_tag_placeholder">exemplo-tag</string>
     <string name="add">Adicionar</string>
+
+    <string name="custom_headers_title">Headers personalizados</string>
+    <string name="custom_headers_desc">Adicione headers HTTP personalizados para as requisições da API</string>
+    <string name="custom_headers_empty">Nenhum header personalizado configurado</string>
+    <string name="custom_header_name">Nome do header</string>
+    <string name="custom_header_value">Valor do header</string>
+    <string name="add_header">Adicionar header</string>
 </resources>

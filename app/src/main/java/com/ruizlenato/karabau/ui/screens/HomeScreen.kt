@@ -109,6 +109,7 @@ private val homeDestinations = listOf(
 fun HomeScreen(
     onLogout: () -> Unit,
     onAddBookmark: () -> Unit = {},
+    onManageCustomHeaders: () -> Unit = {},
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: androidx.compose.animation.AnimatedContentScope,
     savedStateHandle: androidx.lifecycle.SavedStateHandle? = null
@@ -245,7 +246,8 @@ fun HomeScreen(
         if (activeTab == 3) {
             SettingsContent(
                 onLogout = onLogout,
-                onBack = { selectedTab = 0 }
+                onBack = { selectedTab = 0 },
+                onCustomHeadersClick = onManageCustomHeaders
             )
         } else {
             Scaffold(
