@@ -1,0 +1,5 @@
+Version 1.4.2
+
+- Added custom headers management for API requests, accessible from the Add Server screen and Settings
+- Added support for insecure HTTP servers (no SSL) with a confirmation dialog, useful for local self-hosted servers
+- Fixed bottom action buttons being overlapped by the system navigation bar
