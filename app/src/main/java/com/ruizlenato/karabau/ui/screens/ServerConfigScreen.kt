@@ -1,16 +1,13 @@
 package com.ruizlenato.karabau.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -127,7 +124,7 @@ fun ServerConfigScreen(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            BoxWithConstraints(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
@@ -137,7 +134,7 @@ fun ServerConfigScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = maxHeight + 220.dp)
+                        .weight(1f)
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.Start
                 ) {
@@ -222,6 +219,8 @@ fun ServerConfigScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Button(
                     onClick = {
                         val trimmedAddress = address.trim()
@@ -243,10 +242,8 @@ fun ServerConfigScreen(
                         onContinue(trimmedAddress)
                     },
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .navigationBarsPadding(),
+                        .height(56.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
