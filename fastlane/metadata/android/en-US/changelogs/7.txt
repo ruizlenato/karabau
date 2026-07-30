@@ -1,0 +1,10 @@
+Version 1.4.1
+
+- Improved credential security by refusing unencrypted storage fallback
+- Improved home screen performance with smoother scrolling and search
+- Reduced disk writes when favoriting, archiving, or deleting bookmarks
+- Moved search filtering and response parsing off the main thread
+- Faster bookmark creation and share popup loading
+- Tag chips now collapse behind a "show more" chip on long lists
+- Fixed bottom navigation bar background behind the system navigation bar
+- Fixed splash screen icon contrast in light mode
