@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +66,8 @@ fun ServerConfigScreen(
 ) {
     var address by remember { mutableStateOf(currentAddress) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showInsecureHttpDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingHttpAddress by rememberSaveable { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -181,6 +186,11 @@ fun ServerConfigScreen(
                             errorMessage = serverAddressInvalidSchemeError
                             return@Button
                         }
+                        if (trimmedAddress.startsWith("http://")) {
+                            pendingHttpAddress = trimmedAddress
+                            showInsecureHttpDialog = true
+                            return@Button
+                        }
                         onContinue(trimmedAddress)
                     },
                     modifier = Modifier
@@ -206,5 +216,28 @@ fun ServerConfigScreen(
                 }
             }
         }
+    }
+
+    if (showInsecureHttpDialog) {
+        AlertDialog(
+            onDismissRequest = { showInsecureHttpDialog = false },
+            title = { Text(stringResource(R.string.insecure_http_dialog_title)) },
+            text = { Text(stringResource(R.string.insecure_http_dialog_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showInsecureHttpDialog = false
+                        onContinue(pendingHttpAddress)
+                    }
+                ) {
+                    Text(stringResource(R.string.continue_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showInsecureHttpDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }

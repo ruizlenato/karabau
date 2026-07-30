@@ -79,6 +79,8 @@
     <string name="server_address">Endereço do servidor</string>
     <string name="server_address_required">O endereço do servidor é obrigatório</string>
     <string name="server_address_invalid_scheme">O endereço do servidor deve começar com http:// ou https://</string>
+    <string name="insecure_http_dialog_title">Conexão insegura</string>
+    <string name="insecure_http_dialog_message">Você está conectando via HTTP, que não é criptografado. Suas credenciais e dados podem ficar visíveis para outras pessoas na rede. Continuar mesmo assim?</string>
 
     <string name="save_bookmark">Salvar bookmark</string>
     <string name="open_in_karabau">Abrir no Karabau</string>

@@ -79,6 +79,8 @@
     <string name="server_address">Server Address</string>
     <string name="server_address_required">Server address is required</string>
     <string name="server_address_invalid_scheme">Server address must start with http:// or https://</string>
+    <string name="insecure_http_dialog_title">Insecure connection</string>
+    <string name="insecure_http_dialog_message">You\'re connecting over HTTP, which isn\'t encrypted. Your credentials and data could be visible to others on the network. Continue anyway?</string>
 
     <string name="save_bookmark">Save bookmark</string>
     <string name="open_in_karabau">Open in Karabau</string>
