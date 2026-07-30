@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,11 +41,13 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -301,26 +305,34 @@ fun HomeScreen(
                 floatingActionButtonPosition = FabPosition.End,
                 bottomBar = {
                     if (!homeUiState.isSearchActive) {
-                        NavigationBar(
-                            tonalElevation = 0.dp,
-                            windowInsets = WindowInsets(0.dp)
+                        val navigationBarColor = NavigationBarDefaults.containerColor
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = navigationBarColor
                         ) {
-                            homeDestinations.forEachIndexed { index, destination ->
-                                NavigationBarItem(
-                                    selected = activeTab == index,
-                                    onClick = { selectedTab = index },
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (activeTab == index) {
-                                                destination.selectedIcon
-                                            } else {
-                                                destination.unselectedIcon
-                                            },
-                                            contentDescription = stringResource(destination.labelRes)
-                                        )
-                                    },
-                                    label = { Text(stringResource(destination.labelRes)) }
-                                )
+                            NavigationBar(
+                                modifier = Modifier.navigationBarsPadding(),
+                                containerColor = navigationBarColor,
+                                tonalElevation = 0.dp,
+                                windowInsets = WindowInsets(0.dp)
+                            ) {
+                                homeDestinations.forEachIndexed { index, destination ->
+                                    NavigationBarItem(
+                                        selected = activeTab == index,
+                                        onClick = { selectedTab = index },
+                                        icon = {
+                                            Icon(
+                                                imageVector = if (activeTab == index) {
+                                                    destination.selectedIcon
+                                                } else {
+                                                    destination.unselectedIcon
+                                                },
+                                                contentDescription = stringResource(destination.labelRes)
+                                            )
+                                        },
+                                        label = { Text(stringResource(destination.labelRes)) }
+                                    )
+                                }
                             }
                         }
                     }
