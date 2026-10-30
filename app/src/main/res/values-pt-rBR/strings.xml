@@ -74,6 +74,14 @@
     <string name="error_email_password_required">Email e senha são obrigatórios</string>
     <string name="error_email_required">Email é obrigatório</string>
     <string name="error_password_required">Senha é obrigatória</string>
+    <string name="login_type_password">Senha</string>
+    <string name="login_type_api_key">Chave de API</string>
+    <string name="api_key">Chave de API</string>
+    <string name="api_key_placeholder">Cole sua chave de API</string>
+    <string name="api_key_help">Você pode criar uma chave de API na seção Chaves de API das configurações do Karakeep</string>
+    <string name="show_api_key">Mostrar chave de API</string>
+    <string name="hide_api_key">Ocultar chave de API</string>
+    <string name="error_api_key_required">A chave de API é obrigatória</string>
 
     <string name="add_server_title">Adicionar servidor</string>
     <string name="add_server_subtitle">Digite a URL do seu servidor Karakeep</string>

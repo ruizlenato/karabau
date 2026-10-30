@@ -74,6 +74,14 @@
     <string name="error_email_password_required">Email and password are required</string>
     <string name="error_email_required">Email is required</string>
     <string name="error_password_required">Password is required</string>
+    <string name="login_type_password">Password</string>
+    <string name="login_type_api_key">API Key</string>
+    <string name="api_key">API Key</string>
+    <string name="api_key_placeholder">Paste your API key</string>
+    <string name="api_key_help">You can create an API key in the API Keys section of your Karakeep settings</string>
+    <string name="show_api_key">Show API key</string>
+    <string name="hide_api_key">Hide API key</string>
+    <string name="error_api_key_required">API key is required</string>
 
     <string name="add_server_title">Add Server</string>
     <string name="add_server_subtitle">Enter the URL of your Karakeep server</string>
