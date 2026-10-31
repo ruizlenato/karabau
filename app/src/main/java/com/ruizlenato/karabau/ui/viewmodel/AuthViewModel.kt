@@ -68,6 +68,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(password = password, errorMessage = null) }
     }
 
+    fun onApiKeyChange(apiKey: String) {
+        _uiState.update { it.copy(apiKey = apiKey, errorMessage = null) }
+    }
+
+    fun onLoginTypeChange(loginType: LoginType) {
+        _uiState.update { it.copy(loginType = loginType, errorMessage = null) }
+    }
+
     fun onServerAddressChange(address: String) {
         _uiState.update { it.copy(serverAddress = address) }
         viewModelScope.launch {

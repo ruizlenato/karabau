@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -33,6 +34,9 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -68,6 +72,7 @@ import com.ruizlenato.karabau.R
 import com.ruizlenato.karabau.ui.theme.authOutlinedTextFieldColors
 import com.ruizlenato.karabau.ui.viewmodel.AuthState
 import com.ruizlenato.karabau.ui.viewmodel.AuthViewModel
+import com.ruizlenato.karabau.ui.viewmodel.LoginType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,13 +88,16 @@ fun LoginScreen(
     val focusRequester = remember { FocusRequester() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var passwordVisible by remember { mutableStateOf(false) }
+    var apiKeyVisible by remember { mutableStateOf(false) }
     var emailFieldError by remember { mutableStateOf<String?>(null) }
     var passwordFieldError by remember { mutableStateOf<String?>(null) }
+    var apiKeyFieldError by remember { mutableStateOf<String?>(null) }
     val isLoading = uiState.authState == AuthState.LOADING
     val textFieldColors = authOutlinedTextFieldColors()
     val errorEmailPasswordRequired = stringResource(R.string.error_email_password_required)
     val errorEmailRequired = stringResource(R.string.error_email_required)
     val errorPasswordRequired = stringResource(R.string.error_password_required)
+    val errorApiKeyRequired = stringResource(R.string.error_api_key_required)
     val emailKeyboardOptions = remember {
         KeyboardOptions(
             keyboardType = KeyboardType.Email,
@@ -104,8 +112,26 @@ fun LoginScreen(
             platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
         )
     }
+    val apiKeyKeyboardOptions = remember {
+        KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done,
+            platformImeOptions = PlatformImeOptions(privateImeOptions = "disableDirectWriting=true")
+        )
+    }
 
     fun submitLogin() {
+        if (uiState.loginType == LoginType.API_KEY) {
+            if (uiState.apiKey.isBlank()) {
+                apiKeyFieldError = errorApiKeyRequired
+                return
+            }
+            apiKeyFieldError = null
+            focusManager.clearFocus()
+            viewModel.login()
+            return
+        }
+
         val emailBlank = uiState.email.isBlank()
         val passwordBlank = uiState.password.isBlank()
 
@@ -150,6 +176,11 @@ fun LoginScreen(
             if (message == errorEmailPasswordRequired) {
                 emailFieldError = message
                 passwordFieldError = message
+                viewModel.dismissError()
+                return@let
+            }
+            if (message == errorApiKeyRequired) {
+                apiKeyFieldError = message
                 viewModel.dismissError()
                 return@let
             }
@@ -227,80 +258,159 @@ fun LoginScreen(
                 ) {
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    OutlinedTextField(
-                        value = uiState.email,
-                        onValueChange = {
-                            emailFieldError = null
-                            viewModel.onEmailChange(it)
-                        },
-                        label = { Text(stringResource(R.string.email)) },
-                        placeholder = { Text(stringResource(R.string.email_placeholder)) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                            )
-                        },
-                        keyboardOptions = emailKeyboardOptions,
-                        keyboardActions = KeyboardActions(
-                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                        ),
-                        singleLine = true,
-                        enabled = !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        shape = MaterialTheme.shapes.large,
-                        isError = emailFieldError != null,
-                        supportingText = emailFieldError?.let {
-                            { Text(it, color = MaterialTheme.colorScheme.error) }
-                        },
-                        colors = textFieldColors
-                    )
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(
+                            selected = uiState.loginType == LoginType.PASSWORD,
+                            onClick = {
+                                emailFieldError = null
+                                passwordFieldError = null
+                                viewModel.onLoginTypeChange(LoginType.PASSWORD)
+                            },
+                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.login_type_password))
+                        }
+                        SegmentedButton(
+                            selected = uiState.loginType == LoginType.API_KEY,
+                            onClick = {
+                                apiKeyFieldError = null
+                                viewModel.onLoginTypeChange(LoginType.API_KEY)
+                            },
+                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.login_type_api_key))
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(
-                        value = uiState.password,
-                        onValueChange = {
-                            passwordFieldError = null
-                            viewModel.onPasswordChange(it)
-                        },
-                        label = { Text(stringResource(R.string.password)) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    if (uiState.loginType == LoginType.PASSWORD) {
+                        OutlinedTextField(
+                            value = uiState.email,
+                            onValueChange = {
+                                emailFieldError = null
+                                viewModel.onEmailChange(it)
+                            },
+                            label = { Text(stringResource(R.string.email)) },
+                            placeholder = { Text(stringResource(R.string.email_placeholder)) },
+                            leadingIcon = {
                                 Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password),
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                 )
-                            }
-                        },
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = passwordKeyboardOptions,
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                submitLogin()
-                            }
-                        ),
-                        singleLine = true,
-                        enabled = !isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large,
-                        isError = passwordFieldError != null,
-                        supportingText = passwordFieldError?.let {
-                            { Text(it, color = MaterialTheme.colorScheme.error) }
-                        },
-                        colors = textFieldColors
-                    )
+                            },
+                            keyboardOptions = emailKeyboardOptions,
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            ),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            shape = MaterialTheme.shapes.large,
+                            isError = emailFieldError != null,
+                            supportingText = emailFieldError?.let {
+                                { Text(it, color = MaterialTheme.colorScheme.error) }
+                            },
+                            colors = textFieldColors
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = uiState.password,
+                            onValueChange = {
+                                passwordFieldError = null
+                                viewModel.onPasswordChange(it)
+                            },
+                            label = { Text(stringResource(R.string.password)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password),
+                                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = passwordKeyboardOptions,
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    submitLogin()
+                                }
+                            ),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.large,
+                            isError = passwordFieldError != null,
+                            supportingText = passwordFieldError?.let {
+                                { Text(it, color = MaterialTheme.colorScheme.error) }
+                            },
+                            colors = textFieldColors
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = uiState.apiKey,
+                            onValueChange = {
+                                apiKeyFieldError = null
+                                viewModel.onApiKeyChange(it)
+                            },
+                            label = { Text(stringResource(R.string.api_key)) },
+                            placeholder = { Text(stringResource(R.string.api_key_placeholder)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Key,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                                    Icon(
+                                        imageVector = if (apiKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key),
+                                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                    )
+                                }
+                            },
+                            visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = apiKeyKeyboardOptions,
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    submitLogin()
+                                }
+                            ),
+                            singleLine = true,
+                            enabled = !isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.large,
+                            isError = apiKeyFieldError != null,
+                            supportingText = {
+                                val apiKeyError = apiKeyFieldError
+                                if (apiKeyError != null) {
+                                    Text(apiKeyError, color = MaterialTheme.colorScheme.error)
+                                } else {
+                                    Text(stringResource(R.string.api_key_help), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            },
+                            colors = textFieldColors
+                        )
+                    }
                 }
 
                 Button(
