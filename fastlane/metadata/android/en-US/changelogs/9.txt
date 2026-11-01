@@ -1,0 +1,7 @@
+Version 1.5.0
+
+- Added API key login: sign in with an API key instead of email and password
+- Text notes now show their full content in the bookmark detail sheet
+- Logout now revokes the app-created API key on the server, so old keys don't pile up in your Karakeep settings
+- Trust user-installed CA certificates, enabling connections to self-hosted servers behind a private certificate authority
+- Fixed the saved server address not being prefilled on the Add Server screen after logging out
