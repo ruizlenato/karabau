@@ -149,6 +149,7 @@ data class CachedProfileSummary(
 private data class CachedBookmarkItem(
     val id: String,
     val title: String? = null,
+    val text: String? = null,
     val tags: List<String> = emptyList(),
     val imageUrl: String? = null,
     val subtitle: String? = null,
@@ -161,6 +162,7 @@ private data class CachedBookmarkItem(
         return BookmarkItem(
             id = id,
             title = title,
+            text = text,
             tags = tags.toImmutableList(),
             imageUrl = imageUrl,
             subtitle = subtitle,
@@ -176,6 +178,7 @@ private data class CachedBookmarkItem(
             return CachedBookmarkItem(
                 id = item.id,
                 title = item.title,
+                text = item.text,
                 tags = item.tags.toList(),
                 imageUrl = item.imageUrl,
                 subtitle = item.subtitle,
