@@ -68,6 +68,7 @@ fun ServerConfigScreen(
     currentAddress: String
 ) {
     var address by remember { mutableStateOf(currentAddress) }
+    var edited by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showInsecureHttpDialog by rememberSaveable { mutableStateOf(false) }
     var pendingHttpAddress by rememberSaveable { mutableStateOf("") }
@@ -81,6 +82,10 @@ fun ServerConfigScreen(
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
         keyboardController?.show()
+    }
+
+    LaunchedEffect(currentAddress) {
+        if (!edited) address = currentAddress
     }
 
     Scaffold(
@@ -143,6 +148,7 @@ fun ServerConfigScreen(
                     OutlinedTextField(
                         value = address,
                         onValueChange = {
+                            edited = true
                             address = it
                             errorMessage = null
                             onAddressChange(it)
