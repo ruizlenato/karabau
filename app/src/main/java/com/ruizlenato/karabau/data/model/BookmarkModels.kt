@@ -16,6 +16,7 @@ data class GetBookmarksResponse(
 data class BookmarkItem(
     val id: String,
     val title: String? = null,
+    val text: String? = null,
     val tags: ImmutableList<String> = persistentListOf(),
     val imageUrl: String? = null,
     val subtitle: String? = null,

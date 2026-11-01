@@ -691,6 +691,7 @@ class KarabauRepository {
             items += BookmarkItem(
                 id = obj.optString("id"),
                 title = if (obj.isNull("title")) null else obj.optString("title"),
+                text = content?.optStringOrNull("text"),
                 tags = tags,
                 imageUrl = imageUrl,
                 subtitle = subtitle,
